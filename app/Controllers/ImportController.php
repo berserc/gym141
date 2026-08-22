@@ -157,6 +157,12 @@ final class ImportController
         $rows = $this->readRows($file, $delimiter, 0);
         array_shift($rows); // Kopfzeile
 
+        // Gratis-Limit: ein Import darf das Mitgliederlimit nicht sprengen.
+        if (($limitFehler = \App\Core\License::memberLimitError(count($rows))) !== null) {
+            Flash::error('Import abgebrochen – ' . $limitFehler);
+            Url::redirect('/admin/import');
+        }
+
         $sectionLookup = $this->sectionLookup();
         $result        = ['inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => []];
         $lineNo        = 1;

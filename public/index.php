@@ -331,6 +331,11 @@ $settings = new SettingsController();
 
 $router->get('/admin/einstellungen', [$settings, 'index']);
 $router->post('/admin/einstellungen', [$settings, 'save']);
+
+$system = new App\Controllers\SystemController();
+$router->get('/admin/updates', [$system, 'updates']);
+$router->post('/admin/updates/installieren', [$system, 'installUpdate']);
+$router->post('/admin/einstellungen/lizenz-pruefen', [$system, 'checkLicense']);
 $router->get('/admin/protokoll', [$settings, 'auditLog']);
 
 // ---------------------------------------------------------------- Gemeinden --

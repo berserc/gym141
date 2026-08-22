@@ -18,7 +18,8 @@ final class SettingsController
     private const FIELDS = [
         'club_name', 'club_street', 'club_zip', 'club_city', 'club_zvr',
         'club_email', 'club_phone', 'whatsapp_number', 'club_iban', 'club_bank',
-        'home_title', 'home_text', 'fee_year', 'fee_options', 'reminder_email',
+        'club_tagline', 'home_title', 'home_text', 'fee_year', 'fee_options',
+        'reminder_email',
     ];
 
     public function index(): void
@@ -65,6 +66,15 @@ final class SettingsController
             Setting::set('anthropic_api_key', '');
         } elseif ($apiKey !== '') {
             Setting::set('anthropic_api_key', $apiKey);
+        }
+
+        // DevWorld-Lizenzschluessel: bei Aenderung sofort gegen den
+        // Lizenzserver pruefen, damit der Status direkt sichtbar ist.
+        $lizenz = trim(post('devworld_license_key'));
+
+        if ($lizenz !== Setting::get('devworld_license_key')) {
+            Setting::set('devworld_license_key', $lizenz);
+            \App\Core\License::refresh();
         }
 
         Audit::log('settings_updated', 'settings');

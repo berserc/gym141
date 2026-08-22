@@ -21,3 +21,4 @@ Thumbs.db
 *.log
 *.bak
 data/.setup-done
+dist/

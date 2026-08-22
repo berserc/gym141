@@ -125,6 +125,55 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
         </fieldset>
 
         <fieldset class="card">
+            <legend>Gym141 Pro (DevWorld-Lizenz)</legend>
+
+            <?php
+            $lizenzState = \App\Core\License::state();
+            $mitglieder  = \App\Core\License::activeMemberCount();
+            $limit       = \App\Core\License::memberLimit();
+            ?>
+
+            <p>
+                <?php if (\App\Core\License::isPro()): ?>
+                    <span class="badge badge--ok">Pro aktiv</span>
+                    unbegrenzte Mitglieder
+                    <?php if (($lizenzState['expires_at'] ?? null) !== null): ?>
+                        · verlängert bis <?= e(format_date(substr((string) $lizenzState['expires_at'], 0, 10))) ?>
+                    <?php endif; ?>
+                    <?php $module = array_diff((array) ($lizenzState['features'] ?? []), [\App\Core\License::PRODUCT_CODE]); ?>
+                    <?php if ($module !== []): ?>
+                        · Module: <?= e(implode(', ', $module)) ?>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span class="badge <?= $mitglieder >= $limit ? 'badge--danger' : 'badge--info' ?>">
+                        Gratis-Version
+                    </span>
+                    <?= (int) $mitglieder ?> von <?= (int) $limit ?> aktiven Mitgliedern belegt.
+                    <?php if (($lizenzState['reason'] ?? '') !== '' && \App\Core\License::key() !== ''): ?>
+                        <br><small class="field__error">Letzte Prüfung: <?= e((string) $lizenzState['reason']) ?></small>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </p>
+
+            <div class="field">
+                <label for="devworld_license_key">Lizenzschlüssel</label>
+                <input id="devworld_license_key" name="devworld_license_key"
+                       value="<?= e($value('devworld_license_key')) ?>" placeholder="DW-XXXX-XXXX-XXXX-XXXX">
+                <p class="field__hint">
+                    Gym141 ist Open Source und bis <?= \App\Core\License::FREE_MEMBER_LIMIT ?> aktive
+                    Mitglieder kostenlos. Für unbegrenzte Mitglieder und Zusatzmodule gibt es
+                    Gym141 Pro auf
+                    <a href="https://portal.devworld-llc.com" target="_blank" rel="noopener">portal.devworld-llc.com</a> –
+                    den Schlüssel aus „Meine Lizenzen“ hier eintragen.
+                </p>
+            </div>
+
+            <?php if ($value('devworld_license_key') !== ''): ?>
+                <button class="btn btn--sm" type="submit" form="lizenz-pruefen">Lizenz jetzt prüfen</button>
+            <?php endif; ?>
+        </fieldset>
+
+        <fieldset class="card">
             <legend>KI-Formularerkennung (Claude API)</legend>
 
             <div class="field">
@@ -158,6 +207,10 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
     <div class="form-actions">
         <button class="btn btn--primary" type="submit">Einstellungen speichern</button>
     </div>
+</form>
+
+<form id="lizenz-pruefen" method="post" action="<?= e(url('/admin/einstellungen/lizenz-pruefen')) ?>">
+    <?= csrf_field() ?>
 </form>
 
 <div class="card">

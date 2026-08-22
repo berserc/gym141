@@ -180,6 +180,14 @@ final class MemberController
             Url::redirect('/admin/mitglieder/neu');
         }
 
+        // Gratis-Limit: neue AKTIVE Mitglieder zaehlen dagegen.
+        if ((string) $data['status'] === 'aktiv'
+            && ($limitFehler = \App\Core\License::memberLimitError()) !== null) {
+            Flash::withInput($_POST);
+            Flash::error($limitFehler);
+            Url::redirect('/admin/mitglieder/neu');
+        }
+
         $duplicate = MemberRepo::findDuplicate(
             (string) $data['first_name'],
             (string) $data['last_name'],

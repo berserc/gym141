@@ -78,6 +78,7 @@ $nav = [
         ['/admin/import', 'Import', 'superuser', [], 'download'],
         ['/admin/gemeinden', 'Gemeinden', 'superuser', [], 'map'],
         ['/admin/einstellungen', 'Einstellungen', 'superuser', [], 'sliders'],
+        ['/admin/updates', 'Updates', 'superuser', [], 'download'],
         ['/admin/protokoll', 'Protokoll', 'superuser', [], 'list'],
     ],
 ];

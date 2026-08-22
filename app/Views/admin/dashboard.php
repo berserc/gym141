@@ -19,6 +19,19 @@ use App\Core\Auth;
     </p>
 </div>
 
+<?php
+$limitAktiv = \App\Core\License::activeMemberCount();
+$limitMax   = \App\Core\License::memberLimit();
+?>
+<?php if (Auth::isSuperuser() && $limitMax !== PHP_INT_MAX && $limitAktiv >= $limitMax - 5): ?>
+    <div class="notice notice--warn">
+        <strong>Gratis-Limit:</strong> <?= (int) $limitAktiv ?> von <?= (int) $limitMax ?>
+        aktiven Mitgliedern belegt. Unbegrenzte Mitglieder gibt es mit
+        <a href="https://portal.devworld-llc.com" target="_blank" rel="noopener">Gym141 Pro</a>
+        – Lizenzschlüssel unter <a href="<?= e(url('/admin/einstellungen')) ?>">Einstellungen</a> eintragen.
+    </div>
+<?php endif; ?>
+
 <?php if ($pendingTotal > 0 && Auth::isSuperuser()): ?>
     <div class="notice notice--warn">
         <strong><?= (int) $pendingTotal ?></strong> Mitglied(er) sind zum Löschen vorgemerkt.
