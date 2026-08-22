@@ -1,0 +1,28 @@
+{
+  "_hinweis": [
+    "Diese Datei nach deploy.config.json kopieren und ausfuellen.",
+    "deploy.config.json wird nicht versioniert und nicht hochgeladen.",
+    "",
+    "ftps=true nutzt FTP ueber TLS (explizit). Hetzner Managed Server unterstuetzt das.",
+    "Bei ftps=false wird das Passwort im Klartext uebertragen - nur im Notfall verwenden.",
+    "",
+    "remoteRoot ist das Verzeichnis auf dem Server, in dem app/, public/, data/ liegen sollen.",
+    "Ist der FTP-Benutzer auf sein eigenes Wurzelverzeichnis beschraenkt, gehoert hier '' hin.",
+    "docRootIsPublic=true bedeutet: die Domain zeigt bereits auf <remoteRoot>/public."
+  ],
+
+  "targets": {
+    "live": {
+      "host": "",
+      "port": 21,
+      "username": "",
+      "password": "",
+      "ftps": true,
+      "passive": true,
+      "remoteRoot": "/example.org",
+      "docRootIsPublic": true,
+      "url": "https://example.org",
+      "remoteDbFile": "data/gym141.sqlite"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+# Instanz-Konfiguration und Daten – niemals versionieren
+app/config.php
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/backups/
+data/download/
+data/tmp/
+data/mitglieder/
+data/verein/
+data/dateien/
+public/uploads/*
+!public/uploads/.htaccess
+
+# Deployment-Zugangsdaten
+deploy/deploy.config.json
+
+# Betriebssystem/Editor
+Thumbs.db
+.DS_Store
+*.log
+*.bak
+data/.setup-done

@@ -1,0 +1,18 @@
+# Notnagel für den Fall, dass der Document-Root NICHT auf public/ gesetzt werden kann.
+#
+# Empfohlen ist, in konsoleH den Document-Root der Domain direkt auf
+#   /.../gym141/public
+# zu legen. Dann wird diese Datei nie ausgewertet und kann gelöscht werden.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Anwendungs-, Daten- und Skriptverzeichnisse sind nie direkt erreichbar
+    RewriteRule ^(app|data|bin|docs)(/|$) - [F,L]
+
+    # Anfragen in den public-Ordner umschreiben (URL bleibt unverändert)
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
