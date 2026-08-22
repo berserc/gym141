@@ -27,7 +27,7 @@ $limitMax   = \App\Core\License::memberLimit();
     <div class="notice notice--warn">
         <strong>Gratis-Limit:</strong> <?= (int) $limitAktiv ?> von <?= (int) $limitMax ?>
         aktiven Mitgliedern belegt. Unbegrenzte Mitglieder gibt es mit
-        <a href="https://portal.devworld-llc.com" target="_blank" rel="noopener">Gym141 Pro</a>
+        <a href="https://account.devworld-llc.com" target="_blank" rel="noopener">Gym141 Pro</a>
         – Lizenzschlüssel unter <a href="<?= e(url('/admin/einstellungen')) ?>">Einstellungen</a> eintragen.
     </div>
 <?php endif; ?>

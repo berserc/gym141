@@ -163,7 +163,7 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
                     Gym141 ist Open Source und bis <?= \App\Core\License::FREE_MEMBER_LIMIT ?> aktive
                     Mitglieder kostenlos. Für unbegrenzte Mitglieder und Zusatzmodule gibt es
                     Gym141 Pro auf
-                    <a href="https://portal.devworld-llc.com" target="_blank" rel="noopener">portal.devworld-llc.com</a> –
+                    <a href="https://account.devworld-llc.com" target="_blank" rel="noopener">account.devworld-llc.com</a> –
                     den Schlüssel aus „Meine Lizenzen“ hier eintragen.
                 </p>
             </div>

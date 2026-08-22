@@ -7,7 +7,7 @@ namespace App\Core;
 use App\Models\Setting;
 
 /**
- * Verbindung zum DevWorld-Kundenkonto (portal.devworld-llc.com).
+ * Verbindung zum DevWorld-Kundenkonto (account.devworld-llc.com).
  *
  * Gym141 ist Open Source und bis FREE_MEMBER_LIMIT aktive Mitglieder gratis.
  * Ein Lizenzschlüssel (Produkt "gym141-pro") hebt das Limit auf; gebuchte
@@ -188,7 +188,7 @@ final class License
 
         return sprintf(
             'Das Gratis-Limit von %d aktiven Mitgliedern ist erreicht. '
-            . 'Für unbegrenzte Mitglieder gibt es Gym141 Pro auf portal.devworld-llc.com – '
+            . 'Für unbegrenzte Mitglieder gibt es Gym141 Pro auf account.devworld-llc.com – '
             . 'den Lizenzschlüssel dann unter Einstellungen eintragen. '
             . '(Archivieren ehemaliger Mitglieder schafft ebenfalls Platz.)',
             $limit

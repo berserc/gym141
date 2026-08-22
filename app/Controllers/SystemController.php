@@ -98,7 +98,7 @@ final class SystemController
             Flash::error('Lizenzserver nicht erreichbar – es gilt die Karenzzeit der letzten Prüfung.');
         } else {
             Flash::error('Lizenz ungültig (' . (string) ($state['reason'] ?? 'unbekannt') . '). '
-                . 'Schlüssel und Konto auf portal.devworld-llc.com prüfen.');
+                . 'Schlüssel und Konto auf account.devworld-llc.com prüfen.');
         }
 
         Url::redirect('/admin/einstellungen');
