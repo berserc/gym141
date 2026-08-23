@@ -199,13 +199,28 @@ final class Updater
 
     private static function isProtected(string $relativ): bool
     {
-        foreach (self::PROTECTED as $schutz) {
+        foreach (self::protectedPaths() as $schutz) {
             if ($relativ === rtrim($schutz, '/') || str_starts_with($relativ, $schutz)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Geschützte Pfade: die eingebaute Liste plus eigene Pfade aus
+     * app/config.php ('update_protected'). So überleben angepasste Dateien
+     * (eigene Startseite, Logos, Videos …) jedes Update – auch ein Update
+     * des Updaters selbst, denn config.php wird nie angefasst.
+     *
+     * @return list<string>
+     */
+    private static function protectedPaths(): array
+    {
+        $eigene = Config::get('update_protected', []);
+
+        return array_merge(self::PROTECTED, is_array($eigene) ? $eigene : []);
     }
 
     /** Kopiert den entpackten Stand über die Installation; liefert die Anzahl. */

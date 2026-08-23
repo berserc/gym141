@@ -43,7 +43,16 @@ final class License
 
     public static function key(): string
     {
-        return trim(Setting::get('devworld_license_key'));
+        $key = trim(Setting::get('devworld_license_key'));
+
+        // Alternativ kann der Schlüssel fest in app/config.php hinterlegt
+        // werden ('devworld_license_key') – praktisch für verwaltete
+        // Installationen, deren Konfiguration versioniert ausgerollt wird.
+        if ($key === '') {
+            $key = trim((string) Config::get('devworld_license_key', ''));
+        }
+
+        return $key;
     }
 
     /** Basis-URL des Lizenzservers (ohne Slash am Ende). */

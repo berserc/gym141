@@ -89,4 +89,12 @@ return [
     // Einmal-Schlüssel für den Web-Installer unter /setup.php.
     // Nach der Einrichtung auf '' setzen, dann ist der Installer gesperrt.
     'setup_key' => '',
+
+    // Optional: DevWorld-Lizenzschlüssel fest hinterlegen statt ihn in den
+    // Einstellungen zu pflegen (z. B. für verwaltete Installationen).
+    // 'devworld_license_key' => 'DW-XXXX-XXXX-XXXX-XXXX',
+
+    // Optional: zusätzliche Pfade, die der Ein-Klick-Updater NIE überschreibt
+    // (eigene Startseite, Logos, Videos …) – relativ zum Projektstamm.
+    // 'update_protected' => ['app/Views/public/home.php', 'public/assets/img/logo.jpg'],
 ];
