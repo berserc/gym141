@@ -58,20 +58,41 @@ View::share('showEnvBanner', (bool) Config::get('show_env_banner', false));
 View::share('pendingDeletions', Auth::isSuperuser() ? MemberRepo::pendingDeletions() : 0);
 View::share('openFees', Auth::check() ? App\Models\FeeRepo::openStats(Auth::allowedSectionIds())['count'] : 0);
 
+// Betriebsmodus: Gym141 kann die komplette Vereins-Website liefern ODER nur
+// die Verwaltung neben einer bestehenden Website ("Nur Verwaltung").
+// Umschaltbar unter /admin/einstellungen; der Mitgliederbereich ist separat.
+$publicSite = Setting::get('public_site', '1') !== '0';
+$memberArea = Setting::get('member_area', '1') !== '0';
+
+View::share('publicSite', $publicSite);
+View::share('memberArea', $memberArea);
+
 $router = new Router();
 
 // ------------------------------------------------------------- Oeffentlich --
 $public = new PublicController();
 
-$router->get('/', [$public, 'home']);
-$router->get('/sektion/{slug}', [$public, 'section']);
-$router->get('/sportart/{slug}', [$public, 'legacySection']);   // alte Drupal-URLs
-$router->get('/sportarten', static fn () => App\Core\Url::redirect('/'));
+if ($publicSite) {
+    $router->get('/', [$public, 'home']);
+    $router->get('/sektion/{slug}', [$public, 'section']);
+    $router->get('/sportart/{slug}', [$public, 'legacySection']);   // alte Drupal-URLs
+    $router->get('/sportarten', static fn () => App\Core\Url::redirect('/'));
+    $router->get('/sitemap.xml', [$public, 'sitemap']);
+} else {
+    // Nur Verwaltung: die Startseite fuehrt direkt zur Anmeldung.
+    $router->get('/', static fn () => App\Core\Url::redirect('/admin'));
+}
+
+// Redaktionelle Seiten (Impressum, Datenschutz) bleiben immer erreichbar –
+// auch Login-Seiten und Mitgliederbereich brauchen sie.
 $router->get('/seite/{slug}', [$public, 'page']);
 $router->get('/robots.txt', [$public, 'robots']);
-$router->get('/sitemap.xml', [$public, 'sitemap']);
 $router->get('/impressum', static fn () => (new PublicController())->page(['slug' => 'impressum']));
 $router->get('/datenschutz', static fn () => (new PublicController())->page(['slug' => 'datenschutz']));
+
+// Einbettbarer Wochenplan fuer bestehende Websites + oeffentliche Lese-API –
+// gerade im Modus "Nur Verwaltung" der Weg, Trainingszeiten anzuzeigen.
+$router->get('/embed/wochenplan', [$public, 'embedSchedule']);
 
 // ------------------------------------------------------------------ Login --
 $auth = new AuthController();
@@ -148,6 +169,11 @@ $router->put('/api/termine/{id}', [$api, 'updateEvent']);
 $router->delete('/api/termine/{id}', [$api, 'deleteEvent']);
 $router->get('/api/termine.ics', [$api, 'icsFeed']);
 
+// Oeffentliche Lese-API (ohne Anmeldung): Wochenplan und Trainingsgruppen als
+// JSON, damit bestehende Websites die Daten selbst rendern koennen.
+$router->get('/api/wochenplan', [$api, 'listSchedule']);
+$router->get('/api/sektionen', [$api, 'listSections']);
+
 $termine = new App\Controllers\TermineController();
 
 $router->get('/admin/termine', [$termine, 'index']);
@@ -174,18 +200,20 @@ $router->post('/admin/gruppen/{id}/mitglied', [$gruppen, 'addMember']);
 $router->post('/admin/gruppen/{id}/mitglied-entfernen', [$gruppen, 'removeMember']);
 
 // -------------------------------------------------------- Mitgliederbereich --
-$mitglied = new App\Controllers\MemberAreaController();
+if ($memberArea) {
+    $mitglied = new App\Controllers\MemberAreaController();
 
-$router->get('/mitglied/login', [$mitglied, 'showLogin']);
-$router->post('/mitglied/login', [$mitglied, 'login']);
-$router->post('/mitglied/logout', [$mitglied, 'logout']);
-$router->get('/mitglied', [$mitglied, 'home']);
-$router->get('/mitglied/termine', [$mitglied, 'events']);
-$router->post('/mitglied/termin/{id}/antwort', [$mitglied, 'respond']);
-$router->get('/mitglied/passwort', [$mitglied, 'showPassword']);
-$router->post('/mitglied/passwort', [$mitglied, 'changePassword']);
-$router->get('/mitglied/entwicklung', [$mitglied, 'development']);
-$router->post('/mitglied/gewicht', [$mitglied, 'saveWeight']);
+    $router->get('/mitglied/login', [$mitglied, 'showLogin']);
+    $router->post('/mitglied/login', [$mitglied, 'login']);
+    $router->post('/mitglied/logout', [$mitglied, 'logout']);
+    $router->get('/mitglied', [$mitglied, 'home']);
+    $router->get('/mitglied/termine', [$mitglied, 'events']);
+    $router->post('/mitglied/termin/{id}/antwort', [$mitglied, 'respond']);
+    $router->get('/mitglied/passwort', [$mitglied, 'showPassword']);
+    $router->post('/mitglied/passwort', [$mitglied, 'changePassword']);
+    $router->get('/mitglied/entwicklung', [$mitglied, 'development']);
+    $router->post('/mitglied/gewicht', [$mitglied, 'saveWeight']);
+}
 
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();

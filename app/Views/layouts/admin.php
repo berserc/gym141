@@ -154,7 +154,9 @@ try {
         </a>
 
         <div class="admin-top__right">
-            <a class="admin-top__link" href="<?= e(url('/')) ?>" target="_blank" rel="noopener">Website ansehen</a>
+            <?php if ($publicSite ?? true): ?>
+                <a class="admin-top__link" href="<?= e(url('/')) ?>" target="_blank" rel="noopener">Website ansehen</a>
+            <?php endif; ?>
 
             <?php if (!empty($authUser)): ?>
                 <a class="admin-top__user" href="<?= e(url('/admin/profil')) ?>">

@@ -8,6 +8,7 @@
  *   php bin/install.php --admin=office@berserc.com --password=Geheim123
  *   php bin/install.php                                (Zufallspasswort für "admin")
  *   php bin/install.php --force                        (Datenbank neu aufbauen)
+ *   php bin/install.php --no-frontend                  (nur Verwaltung, ohne Website)
  *   GYM141_ENV=dev php bin/install.php                   (Testumgebung einrichten)
  */
 
@@ -24,7 +25,7 @@ if (PHP_SAPI !== 'cli') {
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
-$options   = getopt('', ['admin::', 'force', 'password::']);
+$options   = getopt('', ['admin::', 'force', 'password::', 'no-frontend']);
 $explicit  = is_string($options['admin'] ?? null) && $options['admin'] !== '';
 $adminName = $explicit ? (string) $options['admin'] : 'admin';
 $force     = array_key_exists('force', $options);
@@ -80,6 +81,12 @@ try {
 
     foreach ($installer->run($adminName, $password, $force) as $line) {
         echo '  ' . $line . "\n";
+    }
+
+    // --no-frontend: "Nur Verwaltung" neben einer bestehenden Website.
+    if (array_key_exists('no-frontend', $options)) {
+        \App\Models\Setting::set('public_site', '0');
+        echo "  Betriebsmodus: Nur Verwaltung (öffentliche Website deaktiviert).\n";
     }
 } catch (Throwable $e) {
     exit("\nFEHLER: " . $e->getMessage() . "\n");

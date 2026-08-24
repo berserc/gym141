@@ -174,6 +174,48 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
         </fieldset>
 
         <fieldset class="card">
+            <legend>Betriebsmodus</legend>
+
+            <?php
+            $publicSiteAn = $value('public_site') !== '0';
+            $memberAreaAn = $value('member_area') !== '0';
+            $schema       = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $basisUrl     = $schema . '://' . (string) ($_SERVER['HTTP_HOST'] ?? 'deine-adresse.at')
+                          . rtrim((string) \App\Core\Config::get('base_path', ''), '/');
+            ?>
+
+            <label class="check">
+                <input type="checkbox" name="public_site" value="1" <?= $publicSiteAn ? 'checked' : '' ?>>
+                Öffentliche Website aktiv (Startseite, Trainingsgruppen, Wochenplan)
+            </label>
+            <p class="field__hint">
+                Abgehakt = „Nur Verwaltung“: Gym141 läuft neben eurer bestehenden
+                Website (z. B. unter verwaltung.euer-verein.at). Die Startseite
+                führt dann direkt zur Anmeldung, Suchmaschinen werden ausgesperrt.
+                Impressum und Datenschutz bleiben erreichbar.
+            </p>
+
+            <label class="check">
+                <input type="checkbox" name="member_area" value="1" <?= $memberAreaAn ? 'checked' : '' ?>>
+                Mitgliederbereich aktiv (/mitglied – eigene Daten, Beitragsstatus, Termine)
+            </label>
+
+            <div class="field" style="margin-top: 0.9rem">
+                <label for="embed_snippet">Wochenplan in eine bestehende Website einbetten</label>
+                <input id="embed_snippet" type="text" readonly onclick="this.select()"
+                       value='<?= e('<script src="' . $basisUrl . '/embed.js" defer></script>') ?>'>
+                <p class="field__hint">
+                    Diese eine Zeile dort einfügen, wo der Wochenplan erscheinen
+                    soll (WordPress, Typo3, statisches HTML …) – Änderungen am
+                    Wochenplan erscheinen dort automatisch. Für Entwickler gibt es
+                    die Daten auch als JSON:
+                    <a href="<?= e(url('/api/wochenplan')) ?>" target="_blank" rel="noopener">/api/wochenplan</a> und
+                    <a href="<?= e(url('/api/sektionen')) ?>" target="_blank" rel="noopener">/api/sektionen</a>.
+                </p>
+            </div>
+        </fieldset>
+
+        <fieldset class="card">
             <legend>KI-Formularerkennung (Claude API)</legend>
 
             <div class="field">

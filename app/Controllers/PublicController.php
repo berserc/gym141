@@ -90,11 +90,32 @@ final class PublicController
      * robots.txt wird bewusst von PHP erzeugt: die Testumgebung muss anders
      * antworten als der Produktivbetrieb, obwohl beide dieselben Dateien nutzen können.
      */
+    /**
+     * Einbettbarer Wochenplan für bestehende Websites: läuft in einem iframe
+     * (siehe public/embed.js) und darf deshalb – anders als der Rest der
+     * Anwendung – von fremden Seiten eingebettet werden.
+     */
+    public function embedSchedule(): void
+    {
+        header_remove('X-Frame-Options');
+        header('Content-Security-Policy: frame-ancestors *');
+
+        // Kachel-Links nur, wenn die öffentliche Website überhaupt läuft.
+        $planLinks = \App\Models\Setting::get('public_site', '1') !== '0';
+
+        View::display('public/embed-schedule', [
+            'week'      => \App\Models\Schedule::week(),
+            'planLinks' => $planLinks,
+        ], null);
+    }
+
     public function robots(): void
     {
         header('Content-Type: text/plain; charset=UTF-8');
 
-        if ((bool) Config::get('noindex', false)) {
+        $nurVerwaltung = \App\Models\Setting::get('public_site', '1') === '0';
+
+        if ($nurVerwaltung || (bool) Config::get('noindex', false)) {
             echo "User-agent: *\nDisallow: /\n";
 
             return;

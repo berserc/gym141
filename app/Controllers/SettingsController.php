@@ -58,6 +58,11 @@ final class SettingsController
 
         Setting::setMany($values);
 
+        // Betriebsmodus: Checkboxen fehlen im POST, wenn sie abgehakt sind –
+        // deshalb explizit als '1'/'0' speichern (nicht ueber FIELDS).
+        Setting::set('public_site', post_bool('public_site') ? '1' : '0');
+        Setting::set('member_area', post_bool('member_area') ? '1' : '0');
+
         // API-Schluessel: leer gelassen = unveraendert, damit er beim normalen
         // Speichern nicht verloren geht. Loeschen ueber die eigene Checkbox.
         $apiKey = trim(post('anthropic_api_key'));

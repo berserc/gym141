@@ -95,6 +95,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             try {
                 $installer = new Installer();
                 $result    = $installer->run($adminUser, $password, $force);
+                \App\Models\Setting::set('public_site', ($_POST['public_site'] ?? '') === '1' ? '1' : '0');
                 @file_put_contents($lockFile, date('c') . "\n");
             } catch (Throwable $e) {
                 $error = $e->getMessage();
@@ -183,6 +184,17 @@ header('Content-Type: text/html; charset=UTF-8');
                     <input id="admin_password_confirm" name="admin_password_confirm" type="password" required
                            autocomplete="new-password">
                 </div>
+
+                <label class="check">
+                    <input type="checkbox" name="public_site" value="1" checked>
+                    Auch die öffentliche Vereins-Website bereitstellen
+                </label>
+                <p class="field__hint" style="margin-top:-0.4rem">
+                    Abhaken, wenn ihr schon eine Website habt und Gym141 nur die
+                    Verwaltung übernehmen soll („Nur Verwaltung“ – später jederzeit
+                    unter Einstellungen umschaltbar; der Wochenplan lässt sich
+                    trotzdem in die bestehende Website einbetten).
+                </p>
 
                 <?php if ($dbExists): ?>
                     <label class="check">

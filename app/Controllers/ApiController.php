@@ -21,6 +21,12 @@ use App\Models\CalendarRepo;
  *   PUT    /api/termine/{id}       Termin aendern (nur uebergebene Felder)
  *   DELETE /api/termine/{id}       Termin loeschen
  *   GET    /api/termine.ics        iCalendar-Feed (fuer Kalender-Abos)
+ *
+ * Oeffentlich (ohne Anmeldung, read-only, mit CORS) – damit bestehende
+ * Vereins-Websites Trainingsdaten selbst rendern koennen:
+ *
+ *   GET    /api/wochenplan         Wochenplan nach Tagen gruppiert
+ *   GET    /api/sektionen          veroeffentlichte Trainingsgruppen
  */
 final class ApiController
 {
@@ -104,6 +110,57 @@ final class ApiController
     }
 
     // ----------------------------------------------------------------- Termine --
+
+    // ------------------------------------------------ Oeffentliche Lese-API --
+
+    /** Wochenplan als JSON, nach Wochentagen (1 = Montag) gruppiert. */
+    public function listSchedule(): void
+    {
+        header('Access-Control-Allow-Origin: *');
+
+        $tage = [];
+        foreach (\App\Models\Schedule::week() as $day => $entries) {
+            $tage[] = [
+                'tag'       => $day,
+                'name'      => \App\Models\Schedule::DAYS[$day] ?? (string) $day,
+                'einheiten' => array_map(static fn (array $e): array => [
+                    'von'       => (string) $e['from'],
+                    'bis'       => (string) $e['to'],
+                    'titel'     => (string) $e['title'],
+                    'hinweis'   => (string) $e['note'],
+                    'badge'     => (string) $e['badge'],
+                    'farbe'     => (string) $e['color'],
+                    'symbol'    => (string) $e['icon'],
+                    'sektionen' => array_values(array_map(
+                        static fn (array $s): string => (string) $s['slug'],
+                        (array) $e['sections']
+                    )),
+                ], $entries),
+            ];
+        }
+
+        $this->json([
+            'verein'     => \App\Models\Setting::get('club_name', ''),
+            'wochenplan' => $tage,
+        ]);
+    }
+
+    /** Veroeffentlichte Trainingsgruppen als JSON. */
+    public function listSections(): void
+    {
+        header('Access-Control-Allow-Origin: *');
+
+        $publicSite = \App\Models\Setting::get('public_site', '1') !== '0';
+
+        $this->json([
+            'sektionen' => array_map(static fn (array $s): array => [
+                'slug'    => (string) $s['slug'],
+                'name'    => (string) $s['name'],
+                'tagline' => (string) $s['tagline'],
+                'url'     => $publicSite ? \App\Core\Url::to('/sektion/' . $s['slug']) : null,
+            ], \App\Models\SectionRepo::allPublished()),
+        ]);
+    }
 
     public function listEvents(): void
     {
