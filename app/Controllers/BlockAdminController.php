@@ -81,6 +81,29 @@ final class BlockAdminController
                 $cfg['width']   = in_array($breite, ['normal', 'schmal', 'voll'], true) ? $breite : 'normal';
                 $cfg['image']   = $this->bild($id, 'image', $cfg['image'] ?? '', 1800);
                 break;
+
+            case 'gallery':
+                $spalten        = (int) post('columns', '3');
+                $cfg['columns'] = in_array($spalten, [2, 3, 4], true) ? $spalten : 3;
+                $cfg['images']  = $this->galerieBilder($id, is_array($cfg['images'] ?? null) ? $cfg['images'] : []);
+                break;
+
+            case 'video':
+                $cfg['caption'] = trim(post('caption'));
+                $cfg['youtube'] = $this->youtubeId(trim(post('youtube')));
+                $cfg['poster']  = $this->bild($id, 'poster', $cfg['poster'] ?? '', 1600);
+
+                if (post_bool('file_clear') === 1) {
+                    Upload::delete((string) ($cfg['file'] ?? ''));
+                    $cfg['file'] = '';
+                } else {
+                    $neu = Upload::video($_FILES['file'] ?? null, 'bloecke', 'block-' . $id . '-video');
+                    if ($neu !== null && ($cfg['file'] ?? '') !== '') {
+                        Upload::delete((string) $cfg['file']);
+                    }
+                    $cfg['file'] = $neu ?? (string) ($cfg['file'] ?? '');
+                }
+                break;
         }
 
         BlockRepo::saveConfig($id, $cfg);
@@ -139,6 +162,72 @@ final class BlockAdminController
         $neu = Upload::image($_FILES[$feld] ?? null, 'bloecke', 'block-' . $blockId . '-' . $feld, $maxBreite);
 
         return $neu ?? $bisher;
+    }
+
+    /**
+     * Galerie: bestehende Bilder aktualisieren (Bildunterschrift, Entfernen-
+     * Haken) und neue aus dem Mehrfach-Upload anhängen.
+     *
+     * @param list<array<string,mixed>> $bisher
+     * @return list<array{file:string,caption:string}>
+     */
+    private function galerieBilder(int $blockId, array $bisher): array
+    {
+        $captions  = (array) ($_POST['captions'] ?? []);
+        $entfernen = (array) ($_POST['remove'] ?? []);
+        $ergebnis  = [];
+
+        foreach ($bisher as $i => $bild) {
+            $datei = (string) ($bild['file'] ?? '');
+
+            if (isset($entfernen[$i])) {
+                Upload::delete($datei);
+                continue;
+            }
+
+            $ergebnis[] = [
+                'file'    => $datei,
+                'caption' => trim((string) ($captions[$i] ?? ($bild['caption'] ?? ''))),
+            ];
+        }
+
+        // Mehrfach-Upload: $_FILES['images'] kommt als name[]/tmp_name[]-Struktur.
+        $files = $_FILES['images'] ?? null;
+
+        if (is_array($files) && is_array($files['error'] ?? null)) {
+            foreach ($files['error'] as $i => $error) {
+                $einzel = [
+                    'name'     => $files['name'][$i] ?? '',
+                    'type'     => $files['type'][$i] ?? '',
+                    'tmp_name' => $files['tmp_name'][$i] ?? '',
+                    'error'    => $error,
+                    'size'     => $files['size'][$i] ?? 0,
+                ];
+
+                $pfad = Upload::image($einzel, 'bloecke', 'block-' . $blockId . '-g' . substr(uniqid(), -6), 1800);
+
+                if ($pfad !== null) {
+                    $ergebnis[] = ['file' => $pfad, 'caption' => ''];
+                }
+            }
+        }
+
+        return $ergebnis;
+    }
+
+    /** YouTube-Adresse oder -Id auf die reine Video-Id reduzieren ('' = keine). */
+    private function youtubeId(string $eingabe): string
+    {
+        if ($eingabe === '') {
+            return '';
+        }
+
+        if (preg_match('~(?:youtube(?:-nocookie)?\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,20})~', $eingabe, $m)
+            || preg_match('~^([A-Za-z0-9_-]{6,20})$~', $eingabe, $m)) {
+            return $m[1];
+        }
+
+        return '';
     }
 
     /** @return array{0:?int,1:?array<string,mixed>} */

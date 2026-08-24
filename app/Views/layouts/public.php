@@ -104,5 +104,6 @@ $pageTitle = $title !== '' ? $title . ' | ' . $appName : $appName;
         </nav>
     </div>
 </footer>
+<script src="<?= e(asset('js/blocks.js')) ?>" defer></script>
 </body>
 </html>

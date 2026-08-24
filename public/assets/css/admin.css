@@ -1002,3 +1002,15 @@ a.stat:hover { border-color: var(--gold-text); background: var(--gold-soft); }
 
 .block-add { display: flex; flex-wrap: wrap; gap: .6rem; }
 .block-add form { margin: 0; }
+
+.gallery-admin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.gallery-admin__item img {
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: 8px; display: block; margin-bottom: .4rem;
+}
+.gallery-admin__item input[type=text], .gallery-admin__item input:not([type]) { width: 100%; }

@@ -115,6 +115,70 @@ $ziel    = $page === null
                         </select>
                     </div>
                 </div>
+            <?php elseif ($block['type'] === 'gallery'): ?>
+                <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>
+                <?php if ($bilder !== []): ?>
+                    <div class="gallery-admin">
+                        <?php foreach ($bilder as $gi => $gBild): ?>
+                            <div class="gallery-admin__item">
+                                <img src="<?= e(upload_url((string) $gBild['file'])) ?>" alt="">
+                                <input name="captions[<?= $gi ?>]" value="<?= e((string) ($gBild['caption'] ?? '')) ?>"
+                                       placeholder="Bildunterschrift" maxlength="200">
+                                <label class="check">
+                                    <input type="checkbox" name="remove[<?= $gi ?>]" value="1"> entfernen
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Bilder hinzufügen (Mehrfachauswahl möglich)</label>
+                        <input type="file" name="images[]" accept="image/*" multiple>
+                    </div>
+                    <div class="field">
+                        <label>Spalten</label>
+                        <select name="columns">
+                            <?php foreach ([2, 3, 4] as $sp): ?>
+                                <option value="<?= $sp ?>" <?= (int) ($cfg['columns'] ?? 3) === $sp ? 'selected' : '' ?>><?= $sp ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+            <?php elseif ($block['type'] === 'video'): ?>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>YouTube-Adresse oder Video-Id (optional)</label>
+                        <input name="youtube" value="<?= e((string) ($cfg['youtube'] ?? '')) ?>"
+                               placeholder="https://www.youtube.com/watch?v=…">
+                        <p class="field__hint">Wird datenschutzfreundlich erst nach einem Klick geladen (youtube-nocookie.com).</p>
+                    </div>
+                    <div class="field">
+                        <label>Bildunterschrift (optional)</label>
+                        <input name="caption" value="<?= e((string) ($cfg['caption'] ?? '')) ?>" maxlength="200">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Eigenes Video (MP4/WebM, max. 100 MB)</label>
+                        <?php if (($cfg['file'] ?? '') !== ''): ?>
+                            <p class="field__hint">Aktuell: <code><?= e((string) $cfg['file']) ?></code></p>
+                            <label class="check"><input type="checkbox" name="file_clear" value="1"> Video entfernen</label>
+                        <?php endif; ?>
+                        <input type="file" name="file" accept="video/mp4,video/webm">
+                        <p class="field__hint">Ein eigenes Video hat Vorrang vor YouTube.</p>
+                    </div>
+                    <div class="field">
+                        <label>Vorschaubild (optional)</label>
+                        <?php if (($cfg['poster'] ?? '') !== ''): ?>
+                            <p><img src="<?= e(upload_url((string) $cfg['poster'])) ?>" alt="" style="max-width:200px;border-radius:8px"></p>
+                            <label class="check"><input type="checkbox" name="poster_clear" value="1"> Vorschaubild entfernen</label>
+                        <?php endif; ?>
+                        <input type="file" name="poster" accept="image/*">
+                    </div>
+                </div>
+
             <?php endif; ?>
 
             <button class="btn btn--primary" type="submit">Speichern</button>

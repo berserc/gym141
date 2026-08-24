@@ -22,9 +22,11 @@ final class BlockRepo
      * @var array<string,array{0:string,1:string}>
      */
     public const TYPES = [
-        'text'  => ['Text', 'Fließtext mit Formatierung (Überschriften, Listen, Links).'],
-        'hero'  => ['Hero', 'Großer Aufmacher mit Bild, Titel, Untertitel und Button.'],
-        'image' => ['Bild', 'Einzelnes Bild mit Bildunterschrift und Breitenwahl.'],
+        'text'    => ['Text', 'Fließtext mit Formatierung (Überschriften, Listen, Links).'],
+        'hero'    => ['Hero', 'Großer Aufmacher mit Bild, Titel, Untertitel und Button.'],
+        'image'   => ['Bild', 'Einzelnes Bild mit Bildunterschrift und Breitenwahl.'],
+        'gallery' => ['Galerie', 'Bildergalerie mit Mehrfach-Upload und Großansicht (Lightbox).'],
+        'video'   => ['Video', 'Eigenes Video (MP4/WebM) oder YouTube – datenschutzfreundlich erst nach Klick geladen.'],
     ];
 
     /** @return list<array<string,mixed>> */

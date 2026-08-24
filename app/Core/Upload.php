@@ -72,6 +72,66 @@ final class Upload
         return trim($subDir, '/') . '/' . $filename;
     }
 
+    private const VIDEO_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+
+    private const VIDEO_ALLOWED = [
+        'video/mp4'  => 'mp4',
+        'video/webm' => 'webm',
+    ];
+
+    /**
+     * Nimmt ein hochgeladenes Video entgegen (MP4/WebM, ohne Verarbeitung)
+     * und liefert den Pfad relativ zu public/uploads.
+     *
+     * @param array<string,mixed>|null $file Eintrag aus $_FILES
+     * @throws RuntimeException bei ungueltigen Dateien
+     */
+    public static function video(?array $file, string $subDir, string $basename): ?string
+    {
+        if ($file === null || !isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException(self::errorMessage((int) $file['error']));
+        }
+
+        $tmp = (string) ($file['tmp_name'] ?? '');
+
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            throw new RuntimeException('Die Datei konnte nicht gelesen werden.');
+        }
+
+        if ((int) ($file['size'] ?? 0) > self::VIDEO_MAX_BYTES) {
+            throw new RuntimeException('Das Video ist größer als 100 MB.');
+        }
+
+        $mime = function_exists('finfo_open')
+            ? (string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp)
+            : (string) ($file['type'] ?? '');
+
+        if (!isset(self::VIDEO_ALLOWED[$mime])) {
+            throw new RuntimeException('Nur MP4- oder WebM-Videos sind erlaubt.');
+        }
+
+        $dir = rtrim((string) Config::get('upload_dir'), '/\\') . '/' . trim($subDir, '/');
+
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new RuntimeException('Das Upload-Verzeichnis konnte nicht angelegt werden.');
+        }
+
+        $filename = $basename . '-' . time() . '.' . self::VIDEO_ALLOWED[$mime];
+        $target   = $dir . '/' . $filename;
+
+        if (!move_uploaded_file($tmp, $target)) {
+            throw new RuntimeException('Die Datei konnte nicht gespeichert werden.');
+        }
+
+        @chmod($target, 0644);
+
+        return trim($subDir, '/') . '/' . $filename;
+    }
+
     /** Loescht eine zuvor hochgeladene Datei (Pfad relativ zu public/uploads). */
     public static function delete(string $relativePath): void
     {
