@@ -27,6 +27,7 @@ final class PublicController
             'sections'    => $sections,
             'introTitle'  => Setting::get('home_title', 'Gym141'),
             'introText'   => Setting::get('home_text', ''),
+            'pageBlocks'  => \App\Models\BlockRepo::forPage(null, publishedOnly: true),
             'activePage'  => 'home',
         ]);
     }
@@ -82,6 +83,7 @@ final class PublicController
         View::display('public/page', [
             'title'      => (string) $page['title'],
             'page'       => $page,
+            'pageBlocks' => \App\Models\BlockRepo::forPage((int) $page['id'], publishedOnly: true),
             'activePage' => 'page',
         ]);
     }

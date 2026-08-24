@@ -275,6 +275,17 @@ $router->post('/admin/benutzer/{id}/loeschen', [$users, 'destroy']);
 $pages = new PageAdminController();
 
 $router->get('/admin/seiten', [$pages, 'index']);
+
+// Inhaltsbloecke ("Paragraphs"): {page} = 0 steht fuer die Startseite.
+$bloecke = new App\Controllers\BlockAdminController();
+
+$router->get('/admin/inhalt/{page}', [$bloecke, 'index']);
+$router->post('/admin/inhalt/{page}/neu', [$bloecke, 'store']);
+$router->post('/admin/block/{id}', [$bloecke, 'update']);
+$router->post('/admin/block/{id}/verschieben', [$bloecke, 'move']);
+$router->post('/admin/block/{id}/umschalten', [$bloecke, 'toggle']);
+$router->post('/admin/block/{id}/loeschen', [$bloecke, 'destroy']);
+
 $router->get('/admin/seiten/neu', [$pages, 'create']);
 $router->post('/admin/seiten', [$pages, 'store']);
 $router->get('/admin/seiten/{id}', [$pages, 'edit']);

@@ -600,6 +600,24 @@ CREATE TABLE IF NOT EXISTS pages (
     updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ------------------------------------------------------- Inhaltsbloecke --
+
+-- Seiten werden aus konfigurierbaren Bloecken aufgebaut (Text, Hero, Bild,
+-- Galerie, Video ...) - vergleichbar mit dem Paragraphs-Modul von Drupal.
+-- page_id NULL = Startseite; config ist JSON und gehoert dem jeweiligen Typ.
+CREATE TABLE IF NOT EXISTS page_blocks (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id    INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+    type       TEXT    NOT NULL,
+    config     TEXT    NOT NULL DEFAULT '{}',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    published  INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_page_blocks_page ON page_blocks(page_id, sort_order, id);
+
 -- ----------------------------------------------------------- Einstellungen --
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,

@@ -5,6 +5,7 @@
 <div class="page-head">
     <h1>Seiten</h1>
     <div class="page-head__actions">
+        <a class="btn" href="<?= e(url('/admin/inhalt/0')) ?>">Startseite gestalten</a>
         <a class="btn btn--primary" href="<?= e(url('/admin/seiten/neu')) ?>">Neue Seite</a>
     </div>
 </div>
@@ -36,7 +37,10 @@
                         <?php endif; ?>
                     </td>
                     <td><?= e(format_datetime((string) $page['updated_at'])) ?></td>
-                    <td class="row-actions"><a href="<?= e(url('/admin/seiten/' . $page['id'])) ?>">Bearbeiten</a></td>
+                    <td class="row-actions">
+                        <a href="<?= e(url('/admin/seiten/' . $page['id'])) ?>">Bearbeiten</a>
+                        <a href="<?= e(url('/admin/inhalt/' . $page['id'])) ?>">Inhalt</a>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

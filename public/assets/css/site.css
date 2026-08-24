@@ -931,3 +931,34 @@ a.plan-slot:hover {
     .wa-fab span { display: none; }
     .wa-fab { padding: .8rem; }
 }
+
+/* ------------------------------------------------------- Inhaltsbloecke -- */
+
+.block { margin-block: 2.5rem; }
+
+.block--text .rich-text { max-width: 720px; }
+
+.block--hero {
+    position: relative;
+    margin-block: 2.5rem;
+    padding: 4.5rem 0;
+    background-image: var(--hero-bild);
+    background-size: cover;
+    background-position: center;
+}
+.block--hero-plain { background: var(--bg-soft); }
+.block--hero__shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(16,16,20,.55), rgba(16,16,20,.75));
+}
+.block--hero-plain .block--hero__shade { display: none; }
+.block--hero__content { position: relative; text-align: center; }
+.block--hero__title { font-size: clamp(1.6rem, 4vw, 2.6rem); margin: 0 0 .6rem; }
+.block--hero__text  { color: var(--ink-soft); max-width: 640px; margin: 0 auto 1.2rem; font-size: 1.05rem; }
+
+.block--image figure { margin: 0; text-align: center; }
+.block--image img { max-width: 100%; height: auto; border-radius: 12px; }
+.block--image-schmal img { max-width: min(480px, 100%); }
+.block--image-voll { max-width: none; padding-inline: 0; }
+.block--image-voll img { border-radius: 0; width: 100%; }
+.block--image figcaption { color: var(--ink-soft); font-size: .85rem; margin-top: .5rem; }

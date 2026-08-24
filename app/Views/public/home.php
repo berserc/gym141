@@ -44,6 +44,9 @@ $hatPlan    = array_filter($week) !== [];
     </div>
 </section>
 
+<?php // Frei konfigurierbare Inhaltsblöcke (Verwaltung: Seiten → Startseite gestalten) ?>
+<?php require __DIR__ . '/blocks/_render.php'; ?>
+
 <section class="wrap" id="training">
     <?php if ($sections === []): ?>
         <p class="empty">Derzeit sind keine Trainings veröffentlicht.</p>
