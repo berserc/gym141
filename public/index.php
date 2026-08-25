@@ -284,6 +284,7 @@ $router->post('/admin/inhalt/{page}/neu', [$bloecke, 'store']);
 $router->post('/admin/inhalt/{page}/optionen', [$bloecke, 'options']);
 $router->post('/admin/block/{id}', [$bloecke, 'update']);
 $router->post('/admin/block/{id}/verschieben', [$bloecke, 'move']);
+$router->post('/admin/block/{id}/duplizieren', [$bloecke, 'duplicate']);
 $router->post('/admin/block/{id}/umschalten', [$bloecke, 'toggle']);
 $router->post('/admin/block/{id}/loeschen', [$bloecke, 'destroy']);
 

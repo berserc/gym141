@@ -12,6 +12,10 @@ eigene IT haben – alles wird nach der Installation im Browser verwaltet.
 **Öffentliche Website**
 - Startseite mit Trainingsgruppen-Kacheln und farbigem Wochenplan
   (klickbare Kacheln mit Symbolen, im Backend gepflegt)
+- **Inhaltsblöcke** („Paragraphs“): Startseite und Seiten aus konfigurierbaren
+  Blöcken zusammensetzen – Text, Hero (Bild/Video), Bild, Galerie mit Lightbox,
+  Video (eigenes oder YouTube, erst nach Klick geladen), Wochenplan,
+  Trainingsgruppen, CTA/WhatsApp-Button; sortier-, duplizier- und ausblendbar
 - Eine Seite je Trainingsgruppe: Texte (Richtext-Editor), Bilder, Trainer-Kontakte,
   Trainingszeiten (automatisch aus dem Wochenplan)
 - Frei anlegbare Seiten (Impressum, Datenschutz, …)

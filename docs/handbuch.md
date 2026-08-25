@@ -111,6 +111,41 @@ URL-Kürzel, Reihenfolge und Sichtbarkeit ändert nur der Superuser.
 
 ---
 
+## Seiten aus Inhaltsblöcken bauen
+
+Die Startseite und alle redaktionellen Seiten lassen sich aus **Blöcken**
+zusammensetzen – vergleichbar mit Bausteinen: Block hinzufügen, befüllen,
+mit den Pfeilen sortieren, fertig. Zu finden unter *Seiten* → Button
+**Startseite gestalten** bzw. **Inhalt** neben jeder Seite.
+
+Verfügbare Blöcke:
+
+* **Text** – Fließtext mit Überschriften, Listen und Links.
+* **Hero** – großer Aufmacher mit Hintergrundbild oder -video, Titel,
+  Untertitel und Button. In der Größe „Groß“ füllt er als Seitenauftakt den
+  ganzen Bildschirm.
+* **Bild** – einzelnes Bild mit Bildunterschrift; Breite wählbar.
+* **Galerie** – mehrere Bilder auf einmal hochladen; Besucher blättern in
+  einer Großansicht (Lightbox) durch die Bilder.
+* **Video** – eigenes Video (MP4/WebM) oder ein YouTube-Video. YouTube wird
+  erst geladen, wenn Besucher auf „Abspielen“ klicken – vorher fließen keine
+  Daten an Google.
+* **Wochenplan** – der Wochenplan aus der Terminverwaltung.
+* **Trainingsgruppen** – die Kachelübersicht aller veröffentlichten Sektionen.
+* **Aufruf (CTA)** – hervorgehobene Box mit Button, z. B. fürs Probetraining;
+  auf Wunsch direkt als WhatsApp-Button.
+
+Jeder Block lässt sich **ausblenden** (bleibt gespeichert, erscheint nur
+nicht), **duplizieren** und **löschen**.
+
+Auf der Startseite erscheinen Blöcke normalerweise zwischen Einleitung und
+Trainingsgruppen. Wer die Startseite komplett selbst gestalten will, hakt oben
+**„Startseite besteht nur aus den Blöcken unten“** an – dann verschwindet der
+Standardaufbau, und Hero, Trainingsgruppen und Wochenplan werden als Blöcke in
+beliebiger Reihenfolge eingefügt.
+
+---
+
 ## Für den Superuser
 
 * **Benutzer** – Konten anlegen, Rolle und Sektionen zuweisen, Passwörter zurücksetzen.

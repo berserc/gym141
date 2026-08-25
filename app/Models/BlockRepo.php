@@ -91,6 +91,79 @@ final class BlockRepo
         );
     }
 
+    /**
+     * Dupliziert einen Block samt Konfiguration direkt hinter das Original.
+     * Hochgeladene Dateien werden mitkopiert, damit Original und Kopie
+     * unabhängig voneinander bearbeitet und gelöscht werden können.
+     */
+    public static function duplicate(int $id): ?int
+    {
+        $block = self::find($id);
+        if ($block === null) {
+            return null;
+        }
+
+        $config = self::copyConfigFiles((array) $block['config']);
+
+        Database::run(
+            'INSERT INTO page_blocks (page_id, type, config, sort_order, published)
+             VALUES (:page, :type, :config, :sort, :published)',
+            [
+                'page'      => $block['page_id'],
+                'type'      => (string) $block['type'],
+                'config'    => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'sort'      => (int) $block['sort_order'] + 5,
+                'published' => (int) $block['published'],
+            ]
+        );
+
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    /**
+     * Kopiert alle in einer Block-Konfiguration referenzierten Upload-Dateien
+     * und ersetzt die Pfade durch die Kopien.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private static function copyConfigFiles(array $config): array
+    {
+        foreach (['image', 'video', 'poster', 'file'] as $feld) {
+            if (is_string($config[$feld] ?? null) && $config[$feld] !== '') {
+                $config[$feld] = self::copyUpload((string) $config[$feld]);
+            }
+        }
+
+        if (is_array($config['images'] ?? null)) {
+            foreach ($config['images'] as &$bild) {
+                if (is_string($bild['file'] ?? null) && $bild['file'] !== '') {
+                    $bild['file'] = self::copyUpload((string) $bild['file']);
+                }
+            }
+        }
+
+        return $config;
+    }
+
+    /** @return string Pfad der Kopie (bzw. der alte Pfad, wenn Kopieren scheitert) */
+    private static function copyUpload(string $relativ): string
+    {
+        $basis = rtrim((string) \App\Core\Config::get('upload_dir'), '/\\');
+        $quelle = $basis . '/' . ltrim($relativ, '/');
+
+        if (str_contains($relativ, '..') || !is_file($quelle)) {
+            return $relativ;
+        }
+
+        $info = pathinfo($relativ);
+        $neu  = ($info['dirname'] !== '.' ? $info['dirname'] . '/' : '')
+              . $info['filename'] . '-kopie-' . substr(uniqid(), -6)
+              . (isset($info['extension']) ? '.' . $info['extension'] : '');
+
+        return @copy($quelle, $basis . '/' . $neu) ? $neu : $relativ;
+    }
+
     public static function togglePublished(int $id): void
     {
         Database::run(

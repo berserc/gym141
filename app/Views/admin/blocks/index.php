@@ -272,6 +272,10 @@ $ziel    = $page === null
                 <?= csrf_field() ?>
                 <button class="btn btn--small"><?= (int) $block['published'] === 1 ? 'Ausblenden' : 'Einblenden' ?></button>
             </form>
+            <form method="post" action="<?= e(url('/admin/block/' . (int) $block['id'] . '/duplizieren')) ?>">
+                <?= csrf_field() ?>
+                <button class="btn btn--small">Duplizieren</button>
+            </form>
             <form method="post" action="<?= e(url('/admin/block/' . (int) $block['id'] . '/loeschen')) ?>"
                   onsubmit="return confirm('Diesen Block wirklich löschen?')">
                 <?= csrf_field() ?>

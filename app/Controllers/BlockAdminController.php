@@ -166,6 +166,18 @@ final class BlockAdminController
         $this->back($block['page_id'] === null ? null : (int) $block['page_id'], (int) $block['id']);
     }
 
+    public function duplicate(array $args): void
+    {
+        AuthController::requireRole('superuser');
+        Csrf::verify();
+
+        $block = $this->requireBlock($args);
+        $neuId = BlockRepo::duplicate((int) $block['id']);
+        Flash::success('Block dupliziert.');
+
+        $this->back($block['page_id'] === null ? null : (int) $block['page_id'], $neuId);
+    }
+
     public function toggle(array $args): void
     {
         AuthController::requireRole('superuser');
