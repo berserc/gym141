@@ -3,34 +3,40 @@
 use App\Models\BlockRepo;
 
 /**
- * Inhaltsblöcke einer Seite verwalten (page = 0: Startseite).
+ * Inhaltsblöcke verwalten (page = 0: Startseite, s<id>: Sektionsseite).
  *
  * @var ?int                             $pageId
+ * @var ?int                             $sectionId
  * @var ?array<string,mixed>             $page
+ * @var ?array<string,mixed>             $section
  * @var list<array<string,mixed>>        $blocks
  * @var array<string,array{0:string,1:string}> $types
  */
 
-$kontext = $pageId === null ? 0 : $pageId;
-$ziel    = $page === null
-    ? url('/')
-    : url('/seite/' . $page['slug']);
+$kontext = $pageId !== null ? (string) $pageId : ($sectionId !== null ? 's' . $sectionId : '0');
+$ziel    = $page !== null
+    ? url('/seite/' . $page['slug'])
+    : ($section !== null ? url('/sektion/' . $section['slug']) : url('/'));
+$istStartseite = $pageId === null && $sectionId === null;
 ?>
 
 <div class="page-head">
     <div>
-        <h1><?= e($page['title'] ?? 'Startseite') ?> – Inhalt</h1>
+        <h1><?= e($page['title'] ?? $section['name'] ?? 'Startseite') ?> – Inhalt</h1>
         <p class="page-head__sub">
-            Die Seite wird aus Blöcken aufgebaut – hinzufügen, befüllen, sortieren.
+            Die Seite wird aus Blöcken aufgebaut – hinzufügen, befüllen, per
+            Ziehen am ⠿-Griff (oder mit den Pfeilen) sortieren.
             <a href="<?= e($ziel) ?>" target="_blank" rel="noopener">Seite ansehen</a>
             <?php if ($page !== null): ?>
                 · <a href="<?= e(url('/admin/seiten/' . (int) $page['id'])) ?>">Titel &amp; Textkörper bearbeiten</a>
+            <?php elseif ($section !== null): ?>
+                · <a href="<?= e(url('/admin/sektionen/' . (int) $section['id'])) ?>">Sektion bearbeiten</a>
             <?php endif; ?>
         </p>
     </div>
 </div>
 
-<?php if ($pageId === null): ?>
+<?php if ($istStartseite): ?>
     <fieldset class="card">
         <legend>Aufbau der Startseite</legend>
         <form method="post" action="<?= e(url('/admin/inhalt/0/optionen')) ?>">
@@ -54,9 +60,11 @@ $ziel    = $page === null
 <?php if ($blocks === []): ?>
     <div class="card">
         <p>Noch keine Blöcke.
-            <?php if ($pageId === null): ?>
+            <?php if ($istStartseite): ?>
                 Die Startseite zeigt weiterhin ihren Standardaufbau (Hero, Trainingsgruppen,
                 Wochenplan); Blöcke erscheinen zusätzlich nach dem Einleitungstext.
+            <?php elseif ($sectionId !== null): ?>
+                Blöcke erscheinen unter dem Standardinhalt der Sektionsseite.
             <?php else: ?>
                 Blöcke erscheinen unter dem Textkörper der Seite.
             <?php endif; ?>
@@ -64,10 +72,14 @@ $ziel    = $page === null
     </div>
 <?php endif; ?>
 
+<div id="blocks-sortier"
+     data-sortier-url="<?= e(url('/admin/inhalt/' . $kontext . '/sortieren')) ?>"
+     data-csrf="<?= e(\App\Core\Csrf::token()) ?>">
 <?php foreach ($blocks as $i => $block): ?>
     <?php $cfg = $block['config']; ?>
-    <fieldset class="card" id="block-<?= (int) $block['id'] ?>">
+    <fieldset class="card block-card" id="block-<?= (int) $block['id'] ?>" data-block-id="<?= (int) $block['id'] ?>">
         <legend>
+            <span class="block-griff" draggable="true" title="Zum Sortieren ziehen">⠿</span>
             <?= e($types[$block['type']][0] ?? $block['type']) ?>-Block
             <?php if ((int) $block['published'] === 0): ?>
                 <span class="badge badge--muted">ausgeblendet</span>
@@ -284,6 +296,7 @@ $ziel    = $page === null
         </div>
     </fieldset>
 <?php endforeach; ?>
+</div>
 
 <fieldset class="card">
     <legend>Block hinzufügen</legend>

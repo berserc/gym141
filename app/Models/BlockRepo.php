@@ -32,20 +32,38 @@ final class BlockRepo
         'cta'      => ['Aufruf (CTA)', 'Hervorgehobene Box mit Titel, Text und Button – z. B. für das Probetraining.'],
     ];
 
-    /** @return list<array<string,mixed>> */
-    public static function forPage(?int $pageId, bool $publishedOnly = false): array
+    /**
+     * WHERE-Bedingung für einen Block-Kontext: Seite, Sektionsseite oder
+     * (beides null) Startseite.
+     *
+     * @return array{0:string,1:array<string,int>}
+     */
+    private static function contextWhere(?int $pageId, ?int $sectionId): array
     {
-        $where = $pageId === null ? 'page_id IS NULL' : 'page_id = :page';
+        if ($pageId !== null) {
+            return ['page_id = :page', ['page' => $pageId]];
+        }
+        if ($sectionId !== null) {
+            return ['section_id = :section', ['section' => $sectionId]];
+        }
+
+        return ['page_id IS NULL AND section_id IS NULL', []];
+    }
+
+    /** @return list<array<string,mixed>> */
+    public static function forContext(?int $pageId, ?int $sectionId, bool $publishedOnly = false): array
+    {
+        [$where, $params] = self::contextWhere($pageId, $sectionId);
         $where .= $publishedOnly ? ' AND published = 1' : '';
 
         try {
             $rows = Database::all(
                 "SELECT * FROM page_blocks WHERE $where ORDER BY sort_order, id",
-                $pageId === null ? [] : ['page' => $pageId]
+                $params
             );
         } catch (\PDOException) {
-            // Tabelle fehlt noch (Migration nach einem Update ausstehend):
-            // die Website darf daran niemals scheitern.
+            // Tabelle/Spalte fehlt noch (Migration nach einem Update
+            // ausstehend): die Website darf daran niemals scheitern.
             return [];
         }
 
@@ -54,6 +72,18 @@ final class BlockRepo
         }
 
         return $rows;
+    }
+
+    /** @return list<array<string,mixed>> */
+    public static function forPage(?int $pageId, bool $publishedOnly = false): array
+    {
+        return self::forContext($pageId, null, $publishedOnly);
+    }
+
+    /** @return list<array<string,mixed>> */
+    public static function forSection(int $sectionId, bool $publishedOnly = false): array
+    {
+        return self::forContext(null, $sectionId, $publishedOnly);
     }
 
     /** @return array<string,mixed>|null */
@@ -68,24 +98,47 @@ final class BlockRepo
         return $row;
     }
 
-    public static function create(?int $pageId, string $type): int
+    public static function create(?int $pageId, ?int $sectionId, string $type): int
     {
         if (!isset(self::TYPES[$type])) {
             throw new \InvalidArgumentException("Unbekannter Blocktyp: $type");
         }
 
+        [$where, $params] = self::contextWhere($pageId, $sectionId);
+
         $max = (int) Database::value(
-            'SELECT COALESCE(MAX(sort_order), 0) FROM page_blocks WHERE '
-            . ($pageId === null ? 'page_id IS NULL' : 'page_id = :page'),
-            $pageId === null ? [] : ['page' => $pageId]
+            "SELECT COALESCE(MAX(sort_order), 0) FROM page_blocks WHERE $where",
+            $params
         );
 
         Database::run(
-            'INSERT INTO page_blocks (page_id, type, sort_order) VALUES (:page, :type, :sort)',
-            ['page' => $pageId, 'type' => $type, 'sort' => $max + 10]
+            'INSERT INTO page_blocks (page_id, section_id, type, sort_order)
+             VALUES (:page, :section, :type, :sort)',
+            ['page' => $pageId, 'section' => $sectionId, 'type' => $type, 'sort' => $max + 10]
         );
 
         return (int) Database::pdo()->lastInsertId();
+    }
+
+    /**
+     * Setzt die komplette Reihenfolge eines Kontexts (Drag-and-drop):
+     * nur Blöcke, die wirklich zum Kontext gehören, werden berücksichtigt.
+     *
+     * @param list<int> $ids Block-Ids in gewünschter Reihenfolge
+     */
+    public static function reorder(?int $pageId, ?int $sectionId, array $ids): void
+    {
+        [$where, $params] = self::contextWhere($pageId, $sectionId);
+
+        $position = 0;
+        foreach ($ids as $id) {
+            $position += 10;
+            Database::run(
+                "UPDATE page_blocks SET sort_order = :sort, updated_at = datetime('now')
+                 WHERE id = :id AND $where",
+                $params + ['sort' => $position, 'id' => (int) $id]
+            );
+        }
     }
 
     /** @param array<string,mixed> $config */
@@ -112,10 +165,11 @@ final class BlockRepo
         $config = self::copyConfigFiles((array) $block['config']);
 
         Database::run(
-            'INSERT INTO page_blocks (page_id, type, config, sort_order, published)
-             VALUES (:page, :type, :config, :sort, :published)',
+            'INSERT INTO page_blocks (page_id, section_id, type, config, sort_order, published)
+             VALUES (:page, :section, :type, :config, :sort, :published)',
             [
                 'page'      => $block['page_id'],
+                'section'   => $block['section_id'] ?? null,
                 'type'      => (string) $block['type'],
                 'config'    => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'sort'      => (int) $block['sort_order'] + 5,
@@ -186,8 +240,10 @@ final class BlockRepo
             return;
         }
 
-        $pageWhere = $block['page_id'] === null ? 'page_id IS NULL' : 'page_id = :page';
-        $params    = $block['page_id'] === null ? [] : ['page' => (int) $block['page_id']];
+        [$pageWhere, $params] = self::contextWhere(
+            $block['page_id'] !== null ? (int) $block['page_id'] : null,
+            ($block['section_id'] ?? null) !== null ? (int) $block['section_id'] : null
+        );
 
         $vergleich = $richtung === 'hoch' ? '<' : '>';
         $sortier   = $richtung === 'hoch' ? 'DESC' : 'ASC';

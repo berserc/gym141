@@ -248,3 +248,63 @@
         });
     }
 })();
+
+/* ------------------------------------------------ Inhaltsbloecke: Drag&Drop */
+(function () {
+    'use strict';
+
+    var container = document.getElementById('blocks-sortier');
+    if (!container) { return; }
+
+    var gezogen = null;
+
+    container.querySelectorAll('.block-griff').forEach(function (griff) {
+        var karte = griff.closest('.block-card');
+
+        griff.addEventListener('dragstart', function (event) {
+            gezogen = karte;
+            karte.classList.add('block-card--gezogen');
+            event.dataTransfer.effectAllowed = 'move';
+            // Firefox braucht Daten, sonst startet der Drag nicht.
+            event.dataTransfer.setData('text/plain', karte.dataset.blockId);
+            event.dataTransfer.setDragImage(karte, 20, 20);
+        });
+
+        griff.addEventListener('dragend', function () {
+            karte.classList.remove('block-card--gezogen');
+            gezogen = null;
+            speichern();
+        });
+    });
+
+    container.addEventListener('dragover', function (event) {
+        if (!gezogen) { return; }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+
+        var ziel = event.target.closest('.block-card');
+        if (!ziel || ziel === gezogen) { return; }
+
+        var rect = ziel.getBoundingClientRect();
+        var danach = event.clientY > rect.top + rect.height / 2;
+        container.insertBefore(gezogen, danach ? ziel.nextSibling : ziel);
+    });
+
+    container.addEventListener('drop', function (event) { event.preventDefault(); });
+
+    function speichern() {
+        var daten = new FormData();
+        daten.append('csrf_token', container.dataset.csrf);
+        container.querySelectorAll('.block-card').forEach(function (karte) {
+            daten.append('ids[]', karte.dataset.blockId);
+        });
+
+        fetch(container.dataset.sortierUrl, {
+            method: 'POST',
+            body: daten,
+            credentials: 'same-origin'
+        }).catch(function () {
+            // Beim naechsten Laden gilt wieder die gespeicherte Reihenfolge.
+        });
+    }
+})();

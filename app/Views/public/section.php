@@ -187,3 +187,7 @@ $hatText = trim((string) $section['description']) !== '' || trim((string) $secti
         <?php endif; ?>
     </div>
 </article>
+
+<?php // Frei konfigurierbare Inhaltsblöcke (Verwaltung: Sektionen → Inhalt) ?>
+<?php $pageBlocks = $pageBlocks ?? []; ?>
+<?php require __DIR__ . '/blocks/_render.php'; ?>

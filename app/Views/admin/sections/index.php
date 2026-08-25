@@ -60,6 +60,7 @@ use App\Core\Auth;
                     </td>
                     <td class="row-actions">
                         <a href="<?= e(url('/admin/sektionen/' . $section['id'])) ?>">Bearbeiten</a>
+                        <a href="<?= e(url('/admin/inhalt/s' . $section['id'])) ?>">Inhalt</a>
                         <a href="<?= e(url('/admin/mitglieder', ['section_id' => $section['id']])) ?>">Mitglieder</a>
                     </td>
                 </tr>

@@ -282,6 +282,7 @@ $bloecke = new App\Controllers\BlockAdminController();
 $router->get('/admin/inhalt/{page}', [$bloecke, 'index']);
 $router->post('/admin/inhalt/{page}/neu', [$bloecke, 'store']);
 $router->post('/admin/inhalt/{page}/optionen', [$bloecke, 'options']);
+$router->post('/admin/inhalt/{page}/sortieren', [$bloecke, 'reorder']);
 $router->post('/admin/block/{id}', [$bloecke, 'update']);
 $router->post('/admin/block/{id}/verschieben', [$bloecke, 'move']);
 $router->post('/admin/block/{id}/duplizieren', [$bloecke, 'duplicate']);

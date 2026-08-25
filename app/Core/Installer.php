@@ -177,6 +177,12 @@ final class Installer
         )");
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_page_blocks_page ON page_blocks(page_id, sort_order, id)');
 
+        // Seit 1.3.0 gibt es Bloecke auch auf Sektionsseiten.
+        $this->addColumns($pdo, 'page_blocks', [
+            'section_id' => 'INTEGER REFERENCES sections(id) ON DELETE CASCADE',
+        ]);
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_page_blocks_section ON page_blocks(section_id, sort_order, id)');
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

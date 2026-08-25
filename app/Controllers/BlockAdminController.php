@@ -13,10 +13,12 @@ use App\Models\BlockRepo;
 use App\Models\PageRepo;
 
 /**
- * Verwaltung der Inhaltsblöcke ("Paragraphs") je Seite.
+ * Verwaltung der Inhaltsblöcke ("Paragraphs").
  *
- * URL-Konvention: /admin/inhalt/{page} mit page = 0 für die Startseite,
- * sonst die Seiten-Id aus pages.
+ * URL-Konvention /admin/inhalt/{page}:
+ *   0        Startseite
+ *   <id>     redaktionelle Seite (pages)
+ *   s<id>    Sektionsseite (sections)
  */
 final class BlockAdminController
 {
@@ -24,14 +26,16 @@ final class BlockAdminController
     {
         AuthController::requireRole('superuser');
 
-        [$pageId, $page] = $this->resolvePage($args);
+        [$pageId, $sectionId, $page, $section] = $this->resolveContext($args);
 
         View::display('admin/blocks/index', [
-            'title'  => 'Inhalt: ' . ($page['title'] ?? 'Startseite'),
-            'pageId' => $pageId,
-            'page'   => $page,
-            'blocks' => BlockRepo::forPage($pageId),
-            'types'  => BlockRepo::TYPES,
+            'title'     => 'Inhalt: ' . ($page['title'] ?? $section['name'] ?? 'Startseite'),
+            'pageId'    => $pageId,
+            'sectionId' => $sectionId,
+            'page'      => $page,
+            'section'   => $section,
+            'blocks'    => BlockRepo::forContext($pageId, $sectionId),
+            'types'     => BlockRepo::TYPES,
         ], 'layouts/admin');
     }
 
@@ -40,17 +44,32 @@ final class BlockAdminController
         AuthController::requireRole('superuser');
         Csrf::verify();
 
-        [$pageId] = $this->resolvePage($args);
+        [$pageId, $sectionId] = $this->resolveContext($args);
         $type = post('type');
 
         if (!isset(BlockRepo::TYPES[$type])) {
             Flash::error('Unbekannter Blocktyp.');
         } else {
-            $id = BlockRepo::create($pageId, $type);
+            $id = BlockRepo::create($pageId, $sectionId, $type);
             Flash::success(BlockRepo::TYPES[$type][0] . '-Block hinzugefügt – jetzt befüllen und speichern.');
         }
 
-        $this->back($pageId, $id ?? null);
+        $this->backTo(self::contextKey($pageId, $sectionId), $id ?? null);
+    }
+
+    /** Drag-and-drop: komplette Reihenfolge eines Kontexts speichern. */
+    public function reorder(array $args): void
+    {
+        AuthController::requireRole('superuser');
+        Csrf::verify();
+
+        [$pageId, $sectionId] = $this->resolveContext($args);
+
+        $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
+        BlockRepo::reorder($pageId, $sectionId, $ids);
+
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => true]);
     }
 
     /** Startseiten-Option: Standardaufbau ausblenden, nur Blöcke zeigen. */
@@ -59,14 +78,14 @@ final class BlockAdminController
         AuthController::requireRole('superuser');
         Csrf::verify();
 
-        [$pageId] = $this->resolvePage($args);
+        [$pageId, $sectionId] = $this->resolveContext($args);
 
-        if ($pageId === null) {
+        if ($pageId === null && $sectionId === null) {
             \App\Models\Setting::set('home_blocks_only', post_bool('blocks_only') === 1 ? '1' : '0');
             Flash::success('Startseiten-Aufbau gespeichert.');
         }
 
-        $this->back($pageId);
+        $this->backTo(self::contextKey($pageId, $sectionId));
     }
 
     public function update(array $args): void
@@ -152,7 +171,7 @@ final class BlockAdminController
 
         BlockRepo::saveConfig($id, $cfg);
         Flash::success('Block gespeichert.');
-        $this->back($block['page_id'] === null ? null : (int) $block['page_id'], $id);
+        $this->backTo(self::blockContextKey($block), $id);
     }
 
     public function move(array $args): void
@@ -163,7 +182,7 @@ final class BlockAdminController
         $block = $this->requireBlock($args);
         BlockRepo::move((int) $block['id'], post('richtung') === 'hoch' ? 'hoch' : 'runter');
 
-        $this->back($block['page_id'] === null ? null : (int) $block['page_id'], (int) $block['id']);
+        $this->backTo(self::blockContextKey($block), (int) $block['id']);
     }
 
     public function duplicate(array $args): void
@@ -175,7 +194,7 @@ final class BlockAdminController
         $neuId = BlockRepo::duplicate((int) $block['id']);
         Flash::success('Block dupliziert.');
 
-        $this->back($block['page_id'] === null ? null : (int) $block['page_id'], $neuId);
+        $this->backTo(self::blockContextKey($block), $neuId);
     }
 
     public function toggle(array $args): void
@@ -186,7 +205,7 @@ final class BlockAdminController
         $block = $this->requireBlock($args);
         BlockRepo::togglePublished((int) $block['id']);
 
-        $this->back($block['page_id'] === null ? null : (int) $block['page_id'], (int) $block['id']);
+        $this->backTo(self::blockContextKey($block), (int) $block['id']);
     }
 
     public function destroy(array $args): void
@@ -198,7 +217,7 @@ final class BlockAdminController
         BlockRepo::delete((int) $block['id']);
         Flash::success('Block gelöscht.');
 
-        $this->back($block['page_id'] === null ? null : (int) $block['page_id']);
+        $this->backTo(self::blockContextKey($block));
     }
 
     // ---------------------------------------------------------------- intern --
@@ -286,22 +305,63 @@ final class BlockAdminController
         return '';
     }
 
-    /** @return array{0:?int,1:?array<string,mixed>} */
-    private function resolvePage(array $args): array
+    /**
+     * Löst den {page}-Parameter auf: '0' = Startseite, '<id>' = Seite,
+     * 's<id>' = Sektionsseite.
+     *
+     * @return array{0:?int,1:?int,2:?array<string,mixed>,3:?array<string,mixed>}
+     */
+    private function resolveContext(array $args): array
     {
-        $raw = (int) ($args['page'] ?? 0);
+        $raw = (string) ($args['page'] ?? '0');
 
-        if ($raw === 0) {
-            return [null, null];
+        if (str_starts_with($raw, 's')) {
+            $sectionId = (int) substr($raw, 1);
+            $section   = \App\Models\SectionRepo::find($sectionId);
+
+            if ($section === null) {
+                Flash::error('Sektion nicht gefunden.');
+                Url::redirect('/admin/sektionen');
+            }
+
+            return [null, $sectionId, null, $section];
         }
 
-        $page = PageRepo::find($raw);
+        $pageId = (int) $raw;
+
+        if ($pageId === 0) {
+            return [null, null, null, null];
+        }
+
+        $page = PageRepo::find($pageId);
         if ($page === null) {
             Flash::error('Seite nicht gefunden.');
             Url::redirect('/admin/seiten');
         }
 
-        return [$raw, $page];
+        return [$pageId, null, $page, null];
+    }
+
+    /** Kontext-Schlüssel für URLs: '0', '<pageId>' oder 's<sectionId>'. */
+    private static function contextKey(?int $pageId, ?int $sectionId): string
+    {
+        if ($pageId !== null) {
+            return (string) $pageId;
+        }
+        if ($sectionId !== null) {
+            return 's' . $sectionId;
+        }
+
+        return '0';
+    }
+
+    /** @param array<string,mixed> $block */
+    private static function blockContextKey(array $block): string
+    {
+        return self::contextKey(
+            $block['page_id'] !== null ? (int) $block['page_id'] : null,
+            ($block['section_id'] ?? null) !== null ? (int) $block['section_id'] : null
+        );
     }
 
     /** @return array<string,mixed> */
@@ -317,8 +377,8 @@ final class BlockAdminController
         return $block;
     }
 
-    private function back(?int $pageId, ?int $blockId = null): void
+    private function backTo(string $kontext, ?int $blockId = null): void
     {
-        Url::redirect('/admin/inhalt/' . ($pageId ?? 0) . ($blockId !== null ? '#block-' . $blockId : ''));
+        Url::redirect('/admin/inhalt/' . $kontext . ($blockId !== null ? '#block-' . $blockId : ''));
     }
 }

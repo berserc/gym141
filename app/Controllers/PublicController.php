@@ -50,6 +50,7 @@ final class PublicController
             'section'    => $section,
             'contacts'   => SectionRepo::contacts((int) $section['id']),
             'sections'   => SectionRepo::allPublished(),
+            'pageBlocks' => \App\Models\BlockRepo::forSection((int) $section['id'], publishedOnly: true),
             'activePage' => 'section',
         ]);
     }

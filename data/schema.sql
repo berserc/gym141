@@ -604,10 +604,12 @@ CREATE TABLE IF NOT EXISTS pages (
 
 -- Seiten werden aus konfigurierbaren Bloecken aufgebaut (Text, Hero, Bild,
 -- Galerie, Video ...) - vergleichbar mit dem Paragraphs-Modul von Drupal.
--- page_id NULL = Startseite; config ist JSON und gehoert dem jeweiligen Typ.
+-- Kontext: page_id gesetzt = redaktionelle Seite, section_id gesetzt =
+-- Sektionsseite, beides NULL = Startseite. config ist JSON je Blocktyp.
 CREATE TABLE IF NOT EXISTS page_blocks (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    page_id    INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+    page_id    INTEGER REFERENCES pages(id)    ON DELETE CASCADE,
+    section_id INTEGER REFERENCES sections(id) ON DELETE CASCADE,
     type       TEXT    NOT NULL,
     config     TEXT    NOT NULL DEFAULT '{}',
     sort_order INTEGER NOT NULL DEFAULT 0,
@@ -616,7 +618,8 @@ CREATE TABLE IF NOT EXISTS page_blocks (
     updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_page_blocks_page ON page_blocks(page_id, sort_order, id);
+CREATE INDEX IF NOT EXISTS idx_page_blocks_page    ON page_blocks(page_id, sort_order, id);
+CREATE INDEX IF NOT EXISTS idx_page_blocks_section ON page_blocks(section_id, sort_order, id);
 
 -- ----------------------------------------------------------- Einstellungen --
 CREATE TABLE IF NOT EXISTS settings (
