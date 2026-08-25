@@ -162,6 +162,21 @@ final class Installer
     /** Passt Datenbanken früherer Versionen an, bevor das Schema greift. */
     private function migrate(PDO $pdo): void
     {
+        // Inhaltsbloecke (seit 1.2.0): explizit hier, damit die Tabelle auch
+        // dann entsteht, wenn ein aelterer Updater die geschuetzte
+        // data/schema.sql noch nicht ausgetauscht hat.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS page_blocks (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            page_id    INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+            type       TEXT    NOT NULL,
+            config     TEXT    NOT NULL DEFAULT '{}',
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            published  INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_page_blocks_page ON page_blocks(page_id, sort_order, id)');
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

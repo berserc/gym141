@@ -38,10 +38,16 @@ final class BlockRepo
         $where = $pageId === null ? 'page_id IS NULL' : 'page_id = :page';
         $where .= $publishedOnly ? ' AND published = 1' : '';
 
-        $rows = Database::all(
-            "SELECT * FROM page_blocks WHERE $where ORDER BY sort_order, id",
-            $pageId === null ? [] : ['page' => $pageId]
-        );
+        try {
+            $rows = Database::all(
+                "SELECT * FROM page_blocks WHERE $where ORDER BY sort_order, id",
+                $pageId === null ? [] : ['page' => $pageId]
+            );
+        } catch (\PDOException) {
+            // Tabelle fehlt noch (Migration nach einem Update ausstehend):
+            // die Website darf daran niemals scheitern.
+            return [];
+        }
 
         foreach ($rows as &$row) {
             $row['config'] = self::decode((string) $row['config']);

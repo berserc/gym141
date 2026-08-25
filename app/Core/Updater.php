@@ -197,8 +197,25 @@ final class Updater
         return dirname(__DIR__, 2);
     }
 
+    /**
+     * Dateien, die INNERHALB geschuetzter Verzeichnisse trotzdem aktualisiert
+     * werden muessen: das Datenbank-Schema und die Seed-Daten liegen unter
+     * data/, gehoeren aber zum Anwendungscode.
+     */
+    private const ALWAYS_UPDATE = [
+        'data/schema.sql',
+        'data/seed/',
+        'data/.htaccess',
+    ];
+
     private static function isProtected(string $relativ): bool
     {
+        foreach (self::ALWAYS_UPDATE as $erlaubt) {
+            if ($relativ === rtrim($erlaubt, '/') || str_starts_with($relativ, $erlaubt)) {
+                return false;
+            }
+        }
+
         foreach (self::protectedPaths() as $schutz) {
             if ($relativ === rtrim($schutz, '/') || str_starts_with($relativ, $schutz)) {
                 return true;
