@@ -27,6 +27,9 @@ final class BlockRepo
         'image'   => ['Bild', 'Einzelnes Bild mit Bildunterschrift und Breitenwahl.'],
         'gallery' => ['Galerie', 'Bildergalerie mit Mehrfach-Upload und Großansicht (Lightbox).'],
         'video'   => ['Video', 'Eigenes Video (MP4/WebM) oder YouTube – datenschutzfreundlich erst nach Klick geladen.'],
+        'schedule' => ['Wochenplan', 'Der Wochenplan aus der Terminverwaltung – wie auf der Standard-Startseite.'],
+        'sections' => ['Trainingsgruppen', 'Kachelübersicht aller veröffentlichten Trainingsgruppen.'],
+        'cta'      => ['Aufruf (CTA)', 'Hervorgehobene Box mit Titel, Text und Button – z. B. für das Probetraining.'],
     ];
 
     /** @return list<array<string,mixed>> */

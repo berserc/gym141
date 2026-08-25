@@ -28,6 +28,7 @@ final class PublicController
             'introTitle'  => Setting::get('home_title', 'Gym141'),
             'introText'   => Setting::get('home_text', ''),
             'pageBlocks'  => \App\Models\BlockRepo::forPage(null, publishedOnly: true),
+            'blocksOnly'  => Setting::get('home_blocks_only', '0') === '1',
             'activePage'  => 'home',
         ]);
     }

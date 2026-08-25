@@ -30,6 +30,27 @@ $ziel    = $page === null
     </div>
 </div>
 
+<?php if ($pageId === null): ?>
+    <fieldset class="card">
+        <legend>Aufbau der Startseite</legend>
+        <form method="post" action="<?= e(url('/admin/inhalt/0/optionen')) ?>">
+            <?= csrf_field() ?>
+            <label class="check">
+                <input type="checkbox" name="blocks_only" value="1"
+                       <?= \App\Models\Setting::get('home_blocks_only', '0') === '1' ? 'checked' : '' ?>>
+                Startseite besteht NUR aus den Blöcken unten
+            </label>
+            <p class="field__hint">
+                Angehakt verschwindet der Standardaufbau (Hero mit Einleitung,
+                Trainingsgruppen, Wochenplan) – baue ihn aus Blöcken nach:
+                Hero-, Trainingsgruppen- und Wochenplan-Block gibt es unten.
+                Abgehakt erscheinen die Blöcke zusätzlich nach der Einleitung.
+            </p>
+            <button class="btn" type="submit">Aufbau speichern</button>
+        </form>
+    </fieldset>
+<?php endif; ?>
+
 <?php if ($blocks === []): ?>
     <div class="card">
         <p>Noch keine Blöcke.
@@ -83,13 +104,30 @@ $ziel    = $page === null
                         <input name="button_url" value="<?= e((string) ($cfg['button_url'] ?? '')) ?>" maxlength="300">
                     </div>
                 </div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Hintergrundbild (auch Vorschaubild fürs Video)</label>
+                        <?php if (($cfg['image'] ?? '') !== ''): ?>
+                            <p><img src="<?= e(upload_url((string) $cfg['image'])) ?>" alt="" style="max-width:260px;border-radius:8px"></p>
+                            <label class="check"><input type="checkbox" name="image_clear" value="1"> Bild entfernen</label>
+                        <?php endif; ?>
+                        <input type="file" name="image" accept="image/*">
+                    </div>
+                    <div class="field">
+                        <label>Hintergrundvideo (MP4/WebM, optional – läuft stumm in Schleife)</label>
+                        <?php if (($cfg['video'] ?? '') !== ''): ?>
+                            <p class="field__hint">Aktuell: <code><?= e((string) $cfg['video']) ?></code></p>
+                            <label class="check"><input type="checkbox" name="video_clear" value="1"> Video entfernen</label>
+                        <?php endif; ?>
+                        <input type="file" name="video" accept="video/mp4,video/webm">
+                    </div>
+                </div>
                 <div class="field">
-                    <label>Hintergrundbild</label>
-                    <?php if (($cfg['image'] ?? '') !== ''): ?>
-                        <p><img src="<?= e(upload_url((string) $cfg['image'])) ?>" alt="" style="max-width:260px;border-radius:8px"></p>
-                        <label class="check"><input type="checkbox" name="image_clear" value="1"> Bild entfernen</label>
-                    <?php endif; ?>
-                    <input type="file" name="image" accept="image/*">
+                    <label>Höhe</label>
+                    <select name="size">
+                        <option value="normal" <?= ($cfg['size'] ?? 'normal') !== 'gross' ? 'selected' : '' ?>>Normal</option>
+                        <option value="gross" <?= ($cfg['size'] ?? '') === 'gross' ? 'selected' : '' ?>>Groß (ganzer Bildschirm – als Seitenauftakt)</option>
+                    </select>
                 </div>
 
             <?php elseif ($block['type'] === 'image'): ?>
@@ -178,6 +216,41 @@ $ziel    = $page === null
                         <input type="file" name="poster" accept="image/*">
                     </div>
                 </div>
+
+            <?php elseif ($block['type'] === 'schedule' || $block['type'] === 'sections'): ?>
+                <div class="field">
+                    <label>Überschrift (leer = <?= $block['type'] === 'schedule' ? '„Wochenplan“ bzw. ohne' : 'ohne' ?>)</label>
+                    <input name="title" value="<?= e((string) ($cfg['title'] ?? ($block['type'] === 'schedule' ? 'Wochenplan' : ''))) ?>" maxlength="120">
+                    <p class="field__hint">
+                        <?= $block['type'] === 'schedule'
+                            ? 'Zeigt den Wochenplan aus der Terminverwaltung (Pflege unter Verein → Wochenplan).'
+                            : 'Zeigt die Kacheln aller veröffentlichten Trainingsgruppen (Pflege unter Verein → Sektionen).' ?>
+                    </p>
+                </div>
+
+            <?php elseif ($block['type'] === 'cta'): ?>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Titel</label>
+                        <input name="title" value="<?= e((string) ($cfg['title'] ?? '')) ?>" maxlength="150">
+                    </div>
+                    <div class="field">
+                        <label>Text</label>
+                        <input name="text" value="<?= e((string) ($cfg['text'] ?? '')) ?>" maxlength="300">
+                    </div>
+                    <div class="field">
+                        <label>Button-Beschriftung</label>
+                        <input name="button_label" value="<?= e((string) ($cfg['button_label'] ?? '')) ?>" maxlength="60">
+                    </div>
+                    <div class="field">
+                        <label>Button-Ziel (URL oder /pfad)</label>
+                        <input name="button_url" value="<?= e((string) ($cfg['button_url'] ?? '')) ?>" maxlength="300">
+                    </div>
+                </div>
+                <label class="check">
+                    <input type="checkbox" name="whatsapp" value="1" <?= (int) ($cfg['whatsapp'] ?? 0) === 1 ? 'checked' : '' ?>>
+                    WhatsApp-Button (nutzt die WhatsApp-Nummer aus den Einstellungen; Button-Ziel wird ignoriert)
+                </label>
 
             <?php endif; ?>
 

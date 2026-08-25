@@ -53,6 +53,22 @@ final class BlockAdminController
         $this->back($pageId, $id ?? null);
     }
 
+    /** Startseiten-Option: Standardaufbau ausblenden, nur Blöcke zeigen. */
+    public function options(array $args): void
+    {
+        AuthController::requireRole('superuser');
+        Csrf::verify();
+
+        [$pageId] = $this->resolvePage($args);
+
+        if ($pageId === null) {
+            \App\Models\Setting::set('home_blocks_only', post_bool('blocks_only') === 1 ? '1' : '0');
+            Flash::success('Startseiten-Aufbau gespeichert.');
+        }
+
+        $this->back($pageId);
+    }
+
     public function update(array $args): void
     {
         AuthController::requireRole('superuser');
@@ -72,7 +88,19 @@ final class BlockAdminController
                 $cfg['text']         = trim(post('text'));
                 $cfg['button_label'] = trim(post('button_label'));
                 $cfg['button_url']   = trim(post('button_url'));
+                $cfg['size']         = post('size') === 'gross' ? 'gross' : 'normal';
                 $cfg['image']        = $this->bild($id, 'image', $cfg['image'] ?? '', 2000);
+
+                if (post_bool('video_clear') === 1) {
+                    Upload::delete((string) ($cfg['video'] ?? ''));
+                    $cfg['video'] = '';
+                } else {
+                    $neuesVideo = Upload::video($_FILES['video'] ?? null, 'bloecke', 'block-' . $id . '-hero');
+                    if ($neuesVideo !== null && ($cfg['video'] ?? '') !== '') {
+                        Upload::delete((string) $cfg['video']);
+                    }
+                    $cfg['video'] = $neuesVideo ?? (string) ($cfg['video'] ?? '');
+                }
                 break;
 
             case 'image':
@@ -103,6 +131,22 @@ final class BlockAdminController
                     }
                     $cfg['file'] = $neu ?? (string) ($cfg['file'] ?? '');
                 }
+                break;
+
+            case 'schedule':
+                $cfg['title'] = trim(post('title'));
+                break;
+
+            case 'sections':
+                $cfg['title'] = trim(post('title'));
+                break;
+
+            case 'cta':
+                $cfg['title']        = trim(post('title'));
+                $cfg['text']         = trim(post('text'));
+                $cfg['button_label'] = trim(post('button_label'));
+                $cfg['button_url']   = trim(post('button_url'));
+                $cfg['whatsapp']     = post_bool('whatsapp');
                 break;
         }
 
