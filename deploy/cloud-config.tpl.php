@@ -43,4 +43,8 @@ return [
     // Web-Installer bleibt in der Cloud dauerhaft gesperrt –
     // die Einrichtung uebernimmt der Provisioner via bin/install.php.
     'setup_key' => '',
+
+    // Cloud-Tenants zahlen fuers Hosting – das Gratis-Mitgliederlimit der
+    // Open-Source-Version (25) gilt hier nicht.
+    'free_member_limit' => 100000,
 ];

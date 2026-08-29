@@ -32,12 +32,12 @@
     },
 
     "modes": {
-        "full":         { "label": "Website + Verwaltung", "installArgs": [] },
-        "backend-only": { "label": "Nur Verwaltung",       "installArgs": ["--no-frontend"] }
+        "full":         { "label": "Website + Verwaltung", "label_en": "Website + Admin", "installArgs": [] },
+        "backend-only": { "label": "Nur Verwaltung",       "label_en": "Admin only",      "installArgs": ["--no-frontend"] }
     },
 
     "params": [
-        { "key": "app_name",     "label": "Vereinsname",              "type": "text", "required": true },
-        { "key": "country_code", "label": "Telefon-Landesvorwahl",    "type": "text", "default": "43" }
+        { "key": "app_name",     "label": "Vereinsname",           "label_en": "Club name",              "type": "text", "required": true },
+        { "key": "country_code", "label": "Telefon-Landesvorwahl", "label_en": "Phone country code",     "type": "text", "default": "43" }
     ]
 }
