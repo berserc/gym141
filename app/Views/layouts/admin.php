@@ -136,6 +136,13 @@ try {
     </div>
 <?php endif; ?>
 
+<?php $lizenzHinweis = \App\Core\License::warning(); ?>
+<?php if ($lizenzHinweis !== null): ?>
+    <div class="env-banner" role="alert">
+        <?= e($lizenzHinweis) ?>
+    </div>
+<?php endif; ?>
+
 <header class="admin-top">
     <div class="admin-top__inner">
         <button class="admin-burger" type="button" aria-controls="admin-nav" aria-expanded="false">

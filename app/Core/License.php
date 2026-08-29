@@ -108,13 +108,21 @@ final class License
             return [];
         }
 
-        $host = (string) ($_SERVER['HTTP_HOST'] ?? php_uname('n'));
+        // Auf der Kommandozeile (Cron) gibt es keinen HTTP_HOST – dann zaehlt
+        // der kanonische Host aus der Konfiguration. Der Host geht explizit
+        // mit: der Lizenzserver bindet Pro-Lizenzen an EINE Domain.
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+        if ($host === '') {
+            $host = (string) Config::get('canonical_host', '') ?: php_uname('n');
+        }
 
         $antwort = self::request('/api/v1/licenses/validate', [
             'licenseKey'  => $key,
             'deviceId'    => self::deviceId(),
             'productCode' => self::PRODUCT_CODE,
             'deviceName'  => 'Gym141 @ ' . $host,
+            'host'        => $host,
         ]);
 
         $state = self::state();
@@ -133,6 +141,7 @@ final class License
             $state = [
                 'valid'      => (bool) ($antwort['isValid'] ?? false),
                 'reason'     => $antwort['reason'] ?? null,
+                'warning'    => $antwort['warning'] ?? null,
                 'features'   => array_values((array) ($antwort['features'] ?? [])),
                 'expires_at' => $antwort['expiresAtUtc'] ?? null,
                 'checked_at' => $jetzt,
@@ -154,6 +163,34 @@ final class License
 
         return (bool) ($state['valid'] ?? false)
             && in_array(self::PRODUCT_CODE, (array) ($state['features'] ?? [self::PRODUCT_CODE]), true);
+    }
+
+    /**
+     * Lizenz-Warnung oder Sperr-Hinweis fuer den Admin-Bereich (null = alles ok).
+     *
+     * Der Lizenzserver bindet Pro-Lizenzen an eine Domain: Laeuft derselbe
+     * Schluessel auf mehreren Domains, kommt zuerst eine Warnung mit Frist
+     * (im Feld "warning"), danach meldet er die Lizenz als gesperrt
+     * (reason "multi_domain_blocked").
+     */
+    public static function warning(): ?string
+    {
+        $state = self::check();
+
+        if ($state === []) {
+            return null;
+        }
+
+        if (($state['reason'] ?? '') === 'multi_domain_blocked') {
+            return 'Lizenz gesperrt: Dieser Lizenzschlüssel wird auf mehreren Domains verwendet. '
+                . 'Gym141 Pro gilt für ein System – bitte die überzähligen Installationen stilllegen '
+                . 'oder eine weitere Lizenz erwerben (account.devworld-llc.com). '
+                . 'Sobald nur noch eine Domain aktiv ist, wird die Lizenz automatisch wieder gültig.';
+        }
+
+        $warnung = trim((string) ($state['warning'] ?? ''));
+
+        return $warnung !== '' ? $warnung : null;
     }
 
     /** Ist ein Zusatzmodul (Produktcode, z. B. "gym141-support") gebucht? */
