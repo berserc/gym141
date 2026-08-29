@@ -28,7 +28,8 @@ $dbPath  = is_string($options['db'] ?? null) && $options['db'] !== ''
     : (string) App\Core\Config::get('db_path');
 
 if (!is_file($dbPath)) {
-    exit("Datenbank nicht gefunden: $dbPath\n");
+    fwrite(STDERR, "Datenbank nicht gefunden: $dbPath\n");
+    exit(1);
 }
 
 echo "Aktualisiere: $dbPath\n\n";

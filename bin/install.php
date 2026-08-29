@@ -46,7 +46,8 @@ foreach ($requirements['checks'] as $check) {
 echo "\n";
 
 if (!$requirements['ok']) {
-    exit("Abbruch: Voraussetzungen nicht erfüllt.\n");
+    fwrite(STDERR, "Abbruch: Voraussetzungen nicht erfüllt.\n");
+    exit(1);
 }
 
 $dbPath = (string) Config::get('db_path');
@@ -89,7 +90,8 @@ try {
         echo "  Betriebsmodus: Nur Verwaltung (öffentliche Website deaktiviert).\n";
     }
 } catch (Throwable $e) {
-    exit("\nFEHLER: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "\nFEHLER: " . $e->getMessage() . "\n");
+    exit(1);
 }
 
 echo "\n";

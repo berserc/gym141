@@ -26,6 +26,36 @@ use App\Models\Setting;
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+// ------------------------------------------------------------------ Health --
+// Zustands-Endpoint fuer Monitoring und verwaltetes Hosting (JSON, ohne
+// Sitzung). Bewusst VOR der Datenbank-Pruefung: vor der Einrichtung antwortet
+// er mit Status "setup" und HTTP 503 statt mit der Installationsseite.
+$healthBase = rtrim((string) Config::get('base_path', ''), '/');
+$healthPath = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+
+if ($healthPath === $healthBase . '/health') {
+    $dbFile = is_file((string) Config::get('db_path'));
+    $dbOk   = false;
+
+    if ($dbFile) {
+        try {
+            $dbOk = App\Core\Database::one('SELECT 1 AS ok', []) !== null;
+        } catch (Throwable) {
+            $dbOk = false;
+        }
+    }
+
+    http_response_code($dbOk ? 200 : 503);
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: no-store');
+
+    echo json_encode([
+        'status'  => $dbOk ? 'ok' : ($dbFile ? 'error' : 'setup'),
+        'version' => trim((string) @file_get_contents(dirname(__DIR__) . '/VERSION')),
+    ]);
+    exit;
+}
+
 // Ohne Datenbank kann nur der Installationshinweis ausgegeben werden.
 if (!is_file((string) Config::get('db_path'))) {
     http_response_code(503);
