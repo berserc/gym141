@@ -99,9 +99,21 @@ final class StaffApiController
 
         $offen = FeeRepo::openStats($allowed);
 
+        // Sichtbare Sektionen aufgeloest (fuer Auswahllisten, z. B. Anwesenheit).
+        $sections = $allowed === null
+            ? Database::all('SELECT id, name FROM sections ORDER BY name')
+            : ($allowed === [] ? [] : Database::all(
+                'SELECT id, name FROM sections WHERE id IN ('
+                . implode(',', array_fill(0, count($allowed), '?')) . ') ORDER BY name',
+                $allowed
+            ));
+
         $this->json([
             'club' => $this->club(),
             'user' => $this->staffUser($user),
+            'sections' => array_map(static fn (array $s): array => [
+                'id' => (int) $s['id'], 'name' => (string) $s['name'],
+            ], $sections),
             'stats' => [
                 'active_members'   => $aktiv,
                 'inactive_members' => $inaktiv,
@@ -159,7 +171,178 @@ final class StaffApiController
         ], $rows)]);
     }
 
+    // ----------------------------------------------------------- Anwesenheit --
+
+    /** Aufstellung einer Sektion fuer ein Datum (?datum=&sektion=), mit Anwesend-Status. */
+    public function attendance_get(): void
+    {
+        [, $user] = $this->requireToken();
+
+        $sectionId = (int) ($_GET['sektion'] ?? 0);
+        $datum     = date_create((string) ($_GET['datum'] ?? '')) ?: date_create('today');
+
+        $this->requireSectionAccess($user, $sectionId);
+
+        $rows = Database::all(
+            "SELECT m.id, m.first_name, m.last_name, m.member_no, m.is_trainer,
+                    CASE WHEN a.id IS NULL THEN 0 ELSE 1 END AS present
+               FROM members m
+               JOIN member_sections ms ON ms.member_id = m.id AND ms.section_id = ? AND ms.status = 'aktiv'
+               LEFT JOIN member_attendance a ON a.member_id = m.id AND a.attended_on = ?
+              WHERE m.deleted_at IS NULL AND m.archived_at IS NULL AND m.status = 'aktiv'
+              ORDER BY m.last_name, m.first_name",
+            [$sectionId, $datum->format('Y-m-d')]
+        );
+
+        $this->json([
+            'date'    => $datum->format('Y-m-d'),
+            'section' => $sectionId,
+            'roster'  => array_map(static fn (array $m): array => [
+                'id'         => (int) $m['id'],
+                'first_name' => (string) $m['first_name'],
+                'last_name'  => (string) $m['last_name'],
+                'member_no'  => (string) $m['member_no'],
+                'is_trainer' => (bool) $m['is_trainer'],
+                'present'    => (bool) $m['present'],
+            ], $rows),
+        ]);
+    }
+
+    /**
+     * Anwesenheit speichern: {date, section_id, present_ids, absent_ids}.
+     * Anwesenheit gilt pro Tag (wie in der Web-Verwaltung); nur Mitglieder
+     * der angegebenen Sektion werden angefasst.
+     */
+    public function attendance_save(): void
+    {
+        [, $user] = $this->requireToken();
+
+        $body      = $this->body();
+        $sectionId = (int) ($body['section_id'] ?? 0);
+        $datum     = date_create((string) ($body['date'] ?? ''));
+
+        if ($datum === false) {
+            $this->json(['error' => 'Ungültiges Datum.'], 422);
+        }
+
+        $this->requireSectionAccess($user, $sectionId);
+
+        $present = array_map('intval', (array) ($body['present_ids'] ?? []));
+        $absent  = array_map('intval', (array) ($body['absent_ids'] ?? []));
+        $alle    = array_values(array_unique(array_merge($present, $absent)));
+
+        if ($alle === [] || count($alle) > 1000) {
+            $this->json(['ok' => true, 'saved' => 0, 'removed' => 0]);
+        }
+
+        // Nur Mitglieder, die wirklich in dieser Sektion aktiv sind.
+        $marks   = implode(',', array_fill(0, count($alle), '?'));
+        $gueltig = array_map(
+            static fn (array $r): int => (int) $r['member_id'],
+            Database::all(
+                "SELECT member_id FROM member_sections
+                  WHERE section_id = ? AND status = 'aktiv' AND member_id IN ($marks)",
+                array_merge([$sectionId], $alle)
+            )
+        );
+
+        $present = array_values(array_intersect($present, $gueltig));
+        $absent  = array_values(array_intersect($absent, $gueltig));
+        $tag     = $datum->format('Y-m-d');
+        $userId  = (int) $user['id'];
+        $saved   = 0;
+
+        Database::transaction(static function () use ($present, $absent, $tag, $userId, &$saved): void {
+            foreach ($present as $memberId) {
+                $saved += Database::run(
+                    'INSERT OR IGNORE INTO member_attendance (member_id, attended_on, created_by) VALUES (?, ?, ?)',
+                    [$memberId, $tag, $userId]
+                )->rowCount();
+            }
+
+            if ($absent !== []) {
+                Database::run(
+                    'DELETE FROM member_attendance WHERE attended_on = ? AND member_id IN ('
+                    . implode(',', array_fill(0, count($absent), '?')) . ')',
+                    array_merge([$tag], $absent)
+                );
+            }
+        });
+
+        $this->json(['ok' => true, 'saved' => $saved, 'present' => count($present)]);
+    }
+
+    // -------------------------------------------------------------- Beitraege --
+
+    /** Offene, faellige Beitraege (nur Superuser/Kassier). */
+    public function fees_open(): void
+    {
+        [, $user] = $this->requireToken();
+        $this->requireFeeRole($user);
+
+        $entries = FeeRepo::openEntries(['only_due' => 1], $this->allowedSectionIds($user));
+
+        $this->json(['fees' => array_map(static fn (array $f): array => [
+            'id'           => (int) $f['id'],
+            'member_no'    => (string) $f['member_no'],
+            'first_name'   => (string) $f['first_name'],
+            'last_name'    => (string) $f['last_name'],
+            'amount'       => round((float) $f['amount'], 2),
+            'due_date'     => (string) $f['due_date'],
+            'period_label' => (string) ($f['period_label'] ?: $f['period']),
+            'plan_name'    => (string) ($f['plan_name'] ?? ''),
+        ], array_slice($entries, 0, 500))]);
+    }
+
+    /** Einen Beitrag als bezahlt verbuchen (inkl. Kassabuch, wie im Web). */
+    public function fees_mark_paid(): void
+    {
+        [, $user] = $this->requireToken();
+        $this->requireFeeRole($user);
+
+        $entryId = (int) ($this->body()['entry_id'] ?? 0);
+
+        $entry = Database::one(
+            'SELECT f.id, f.paid FROM fee_entries f WHERE f.id = ?',
+            [$entryId]
+        );
+
+        if ($entry === null) {
+            $this->json(['error' => 'Beitrag nicht gefunden.'], 404);
+        }
+
+        if ((int) $entry['paid'] === 1) {
+            $this->json(['ok' => true, 'already' => true]);
+        }
+
+        FeeRepo::markPaid($entryId, null, null, (int) $user['id'], 'per Gym141-Admin-App');
+
+        $this->json(['ok' => true]);
+    }
+
     // --------------------------------------------------------------- Intern --
+
+    /** Zugriff auf eine Sektion pruefen (404/403 sonst). */
+    private function requireSectionAccess(array $user, int $sectionId): void
+    {
+        if ($sectionId <= 0 || Database::one('SELECT id FROM sections WHERE id = ?', [$sectionId]) === null) {
+            $this->json(['error' => 'Sektion nicht gefunden.'], 404);
+        }
+
+        $allowed = $this->allowedSectionIds($user);
+
+        if ($allowed !== null && !in_array($sectionId, $allowed, true)) {
+            $this->json(['error' => 'Kein Zugriff auf diese Sektion.'], 403);
+        }
+    }
+
+    /** Beitragsfunktionen nur fuer Superuser und Kassier. */
+    private function requireFeeRole(array $user): void
+    {
+        if (!in_array((string) $user['role'], ['superuser', 'kassier'], true)) {
+            $this->json(['error' => 'Beiträge sind Superuser und Kassier vorbehalten.'], 403);
+        }
+    }
 
     /** @return array{0:int, 1:array<string,mixed>} */
     private function requireToken(): array

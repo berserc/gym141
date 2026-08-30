@@ -264,6 +264,10 @@ $router->post('/api/app/verwaltung/login', [$staffApi, 'login']);
 $router->post('/api/app/verwaltung/logout', [$staffApi, 'logout']);
 $router->get('/api/app/verwaltung/uebersicht', [$staffApi, 'overview']);
 $router->get('/api/app/verwaltung/mitglieder', [$staffApi, 'members']);
+$router->get('/api/app/verwaltung/anwesenheit', [$staffApi, 'attendance_get']);
+$router->post('/api/app/verwaltung/anwesenheit', [$staffApi, 'attendance_save']);
+$router->get('/api/app/verwaltung/beitraege', [$staffApi, 'fees_open']);
+$router->post('/api/app/verwaltung/beitraege/bezahlt', [$staffApi, 'fees_mark_paid']);
 
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();
