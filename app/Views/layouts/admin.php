@@ -64,6 +64,7 @@ $nav = [
     ],
     'Verein' => [
         ['/admin/termine', 'Termine', null, [], 'calendar'],
+        ['/admin/aufgaben', 'Aufgaben', null, [], 'check'],
         ['/admin/vorstand', 'Vorstand', null, [], 'case'],
         ['/admin/verein', 'Verein', ['superuser', 'kassier'], [], 'flag'],
         ['/admin/dateien', 'Dateien', null, [], 'folder'],
@@ -97,7 +98,7 @@ $modeWhitelist = [
     ],
     'trainer' => [
         '/admin', '/admin/mitglieder', '/admin/gruppen', '/admin/anwesenheit',
-        '/admin/entwicklung', '/admin/erfolge', '/admin/termine', '/admin/dateien',
+        '/admin/entwicklung', '/admin/erfolge', '/admin/termine', '/admin/aufgaben', '/admin/dateien',
     ],
 ];
 

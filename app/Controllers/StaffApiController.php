@@ -320,6 +320,189 @@ final class StaffApiController
         $this->json(['ok' => true]);
     }
 
+    // --------------------------------------------------------------- Aufgaben --
+
+    /**
+     * Aufgabenliste inkl. Checklisten – vollstaendig, damit die Apps offline
+     * arbeiten koennen. updated_at ist die Konfliktbasis fuer Schreibzugriffe.
+     */
+    public function tasks_get(): void
+    {
+        [, $user] = $this->requireToken();
+
+        $tasks = Database::all(
+            'SELECT t.*, u.name AS creator_name FROM club_tasks t
+               LEFT JOIN users u ON u.id = t.created_by
+              ORDER BY t.status, COALESCE(t.due_date, \'9999\'), t.id DESC'
+        );
+
+        $this->json(['tasks' => array_map(
+            fn (array $t): array => $this->taskJson($t, $user),
+            $tasks
+        )]);
+    }
+
+    /** Neue Aufgabe: {title, description?, due_date?}. */
+    public function tasks_create(): void
+    {
+        [, $user] = $this->requireToken();
+
+        $body  = $this->body();
+        $titel = trim((string) ($body['title'] ?? ''));
+
+        if ($titel === '') {
+            $this->json(['error' => 'Titel fehlt.'], 422);
+        }
+
+        $id = Database::insert('club_tasks', [
+            'title'       => mb_substr($titel, 0, 200),
+            'description' => mb_substr((string) ($body['description'] ?? ''), 0, 4000),
+            'due_date'    => ($body['due_date'] ?? null) ?: null,
+            'created_by'  => (int) $user['id'],
+        ]);
+
+        $this->json(['task' => $this->taskJson(
+            Database::one('SELECT t.*, ? AS creator_name FROM club_tasks t WHERE t.id = ?', [(string) ($user['name'] ?: $user['username']), $id]),
+            $user
+        )], 201);
+    }
+
+    /**
+     * Aufgabe aendern: {status|toggle_item|neues_item|delete_item|share|title|description|due_date}.
+     *
+     * Offline-Sync: Die App schickt base_updated_at (Stand, auf dem ihre
+     * Aenderung beruht). Ist der Server neuer, kommt 409 samt aktuellem
+     * Stand zurueck – die Entscheidung trifft der Admin oder wer die Aufgabe
+     * angelegt hat (force=true), oder sie wird verschoben ("spaeter").
+     */
+    public function task_action(array $args): void
+    {
+        [, $user] = $this->requireToken();
+
+        $id   = (int) ($args['id'] ?? 0);
+        $task = Database::one('SELECT * FROM club_tasks WHERE id = ?', [$id]);
+
+        if ($task === null) {
+            $this->json(['error' => 'Aufgabe nicht gefunden.'], 404);
+        }
+
+        $body  = $this->body();
+        $basis = trim((string) ($body['base_updated_at'] ?? ''));
+        $force = !empty($body['force']);
+
+        if ($force && !$this->mayDecide($user, $task)) {
+            $this->json([
+                'error'          => 'Konflikte entscheidet der Admin oder wer die Aufgabe angelegt hat.',
+                'decision_locked' => true,
+            ], 403);
+        }
+
+        if ($basis !== '' && !$force && $basis !== (string) $task['updated_at']) {
+            // Stand am Server ist neuer als die Basis der App-Aenderung.
+            $this->json([
+                'conflict'   => true,
+                'can_decide' => $this->mayDecide($user, $task),
+                'task'       => $this->taskJson($task + ['creator_name' => $this->creatorName($task)], $user),
+            ], 409);
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+
+        if (isset($body['status'])) {
+            Database::update('club_tasks', $id, [
+                'status'     => $body['status'] === 'erledigt' ? 'erledigt' : 'offen',
+                'updated_at' => $now,
+            ]);
+        }
+
+        if (isset($body['title']) || isset($body['description']) || array_key_exists('due_date', $body)) {
+            Database::update('club_tasks', $id, [
+                'title'       => mb_substr(trim((string) ($body['title'] ?? $task['title'])) ?: (string) $task['title'], 0, 200),
+                'description' => mb_substr((string) ($body['description'] ?? $task['description']), 0, 4000),
+                'due_date'    => array_key_exists('due_date', $body) ? (($body['due_date'] ?? null) ?: null) : $task['due_date'],
+                'updated_at'  => $now,
+            ]);
+        }
+
+        if (!empty($body['toggle_item'])) {
+            Database::run('UPDATE club_task_items SET done = 1 - done WHERE id = ? AND task_id = ?', [(int) $body['toggle_item'], $id]);
+            Database::run('UPDATE club_tasks SET updated_at = ? WHERE id = ?', [$now, $id]);
+        }
+
+        if (trim((string) ($body['neues_item'] ?? '')) !== '') {
+            Database::insert('club_task_items', [
+                'task_id' => $id,
+                'title'   => mb_substr(trim((string) $body['neues_item']), 0, 200),
+                'sort'    => (int) Database::value('SELECT COALESCE(MAX(sort),0)+1 FROM club_task_items WHERE task_id = ?', [$id]),
+            ]);
+            Database::run('UPDATE club_tasks SET updated_at = ? WHERE id = ?', [$now, $id]);
+        }
+
+        if (!empty($body['delete_item'])) {
+            Database::run('DELETE FROM club_task_items WHERE id = ? AND task_id = ?', [(int) $body['delete_item'], $id]);
+            Database::run('UPDATE club_tasks SET updated_at = ? WHERE id = ?', [$now, $id]);
+        }
+
+        if (isset($body['share'])) {
+            Database::update('club_tasks', $id, [
+                'share_token' => !empty($body['share']) ? bin2hex(random_bytes(16)) : null,
+            ]);
+        }
+
+        $task = Database::one('SELECT * FROM club_tasks WHERE id = ?', [$id]);
+
+        $this->json(['task' => $this->taskJson($task + ['creator_name' => $this->creatorName($task)], $user)]);
+    }
+
+    /** Konflikt entscheiden darf der Admin (Superuser) oder wer die Aufgabe angelegt hat. */
+    private function mayDecide(array $user, array $task): bool
+    {
+        return (string) $user['role'] === 'superuser'
+            || ((int) ($task['created_by'] ?? 0) !== 0 && (int) $task['created_by'] === (int) $user['id']);
+    }
+
+    private function creatorName(array $task): string
+    {
+        return (string) (Database::value(
+            'SELECT name FROM users WHERE id = ?',
+            [(int) ($task['created_by'] ?? 0)]
+        ) ?? '');
+    }
+
+    /** @return array<string,mixed> */
+    private function taskJson(array $task, array $user): array
+    {
+        $id     = (int) $task['id'];
+        $schema = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host   = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+        return [
+            'id'          => $id,
+            'title'       => (string) $task['title'],
+            'description' => (string) $task['description'],
+            'status'      => (string) $task['status'],
+            'due_date'    => $task['due_date'],
+            'updated_at'  => (string) $task['updated_at'],
+            'created_by'  => (int) ($task['created_by'] ?? 0),
+            'creator'     => (string) ($task['creator_name'] ?? ''),
+            'can_decide'  => $this->mayDecide($user, $task),
+            'shared'      => $task['share_token'] !== null,
+            'share_url'   => $task['share_token'] !== null && $host !== ''
+                ? $schema . '://' . $host . url('/f/' . $task['share_token'])
+                : null,
+            'items'       => array_map(static fn (array $i): array => [
+                'id'    => (int) $i['id'],
+                'title' => (string) $i['title'],
+                'done'  => (bool) $i['done'],
+            ], Database::all('SELECT * FROM club_task_items WHERE task_id = ? ORDER BY sort, id', [$id])),
+            'files'       => array_map(static fn (array $f): array => [
+                'id'       => (int) $f['id'],
+                'filename' => (string) $f['filename'],
+                'size'     => (int) $f['size'],
+            ], Database::all('SELECT * FROM club_task_files WHERE task_id = ? ORDER BY id', [$id])),
+        ];
+    }
+
     // --------------------------------------------------------------- Intern --
 
     /** Zugriff auf eine Sektion pruefen (404/403 sonst). */
@@ -446,8 +629,10 @@ final class StaffApiController
     private function body(): array
     {
         $raw = (string) file_get_contents('php://input');
+        $ct  = (string) ($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '');
 
-        if ($raw !== '' && str_contains((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'json')) {
+        // Content-Type ODER JSON-artiger Inhalt – je nach SAPI fehlt der Header.
+        if ($raw !== '' && (str_contains($ct, 'json') || str_starts_with(ltrim($raw), '{'))) {
             $data = json_decode($raw, true);
 
             if (is_array($data)) {

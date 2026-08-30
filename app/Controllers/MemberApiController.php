@@ -104,7 +104,23 @@ final class MemberApiController
     {
         [, $member] = $this->requireToken();
 
-        $body    = $this->body();
+        $body = $this->body();
+
+        // Offline-Sync-Konfliktbasis: Beruht die App-Aenderung auf einem
+        // aelteren Stand (z. B. hat die Verwaltung inzwischen geaendert),
+        // kommt 409 samt aktuellem Profil zurueck – das Mitglied entscheidet
+        // in der App (erneut senden mit force) oder verschiebt es.
+        $basis = trim((string) ($body['base_updated_at'] ?? ''));
+
+        if ($basis !== '' && empty($body['force']) && $basis !== (string) ($member['updated_at'] ?? '')) {
+            $this->json([
+                'conflict' => true,
+                'club'     => $this->club(),
+                'member'   => $this->profile($member),
+                'fee'      => $this->fee($member),
+            ], 409);
+        }
+
         $changes = [];
 
         foreach (self::EDITABLE as $field) {
@@ -282,6 +298,7 @@ final class MemberApiController
             'email'      => (string) $member['email'],
             'phone'      => (string) $member['phone'],
             'joined_on'  => $member['joined_on'],
+            'updated_at' => (string) ($member['updated_at'] ?? ''),
             'editable'   => self::EDITABLE,
         ];
     }
@@ -357,8 +374,10 @@ final class MemberApiController
     private function body(): array
     {
         $raw = (string) file_get_contents('php://input');
+        $ct  = (string) ($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '');
 
-        if ($raw !== '' && str_contains((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'json')) {
+        // Content-Type ODER JSON-artiger Inhalt – je nach SAPI fehlt der Header.
+        if ($raw !== '' && (str_contains($ct, 'json') || str_starts_with(ltrim($raw), '{'))) {
             $data = json_decode($raw, true);
 
             if (is_array($data)) {

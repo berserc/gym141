@@ -196,6 +196,78 @@ $istStartseite = $pageId === null && $sectionId === null;
                     </div>
                 </div>
 
+            <?php elseif ($block['type'] === 'slideshow'): ?>
+                <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>
+                <?php if ($bilder !== []): ?>
+                    <div class="gallery-admin">
+                        <?php foreach ($bilder as $gi => $gBild): ?>
+                            <div class="gallery-admin__item">
+                                <img src="<?= e(upload_url((string) $gBild['file'])) ?>" alt="">
+                                <input name="captions[<?= $gi ?>]" value="<?= e((string) ($gBild['caption'] ?? '')) ?>"
+                                       placeholder="Bildunterschrift" maxlength="200">
+                                <label class="check">
+                                    <input type="checkbox" name="remove[<?= $gi ?>]" value="1"> entfernen
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <div class="field">
+                    <label>Neue Bilder hochladen (Mehrfachauswahl möglich)</label>
+                    <input type="file" name="images[]" accept="image/*" multiple>
+                </div>
+
+                <?php $serverBilder = \App\Controllers\BlockAdminController::serverBilder(); ?>
+                <?php if ($serverBilder !== []): ?>
+                    <details class="field">
+                        <summary class="linklike">Bereits hochgeladene Bilder auswählen (<?= count($serverBilder) ?> am Server)</summary>
+                        <div class="gallery-admin" style="margin-top:.6rem">
+                            <?php $vorhanden = array_column($bilder, 'file'); ?>
+                            <?php foreach ($serverBilder as $sPfad): ?>
+                                <?php if (in_array($sPfad, $vorhanden, true)) { continue; } ?>
+                                <label class="gallery-admin__item" style="cursor:pointer">
+                                    <img src="<?= e(upload_url($sPfad)) ?>" alt="" loading="lazy">
+                                    <span class="check" style="display:flex;gap:.35rem;align-items:center">
+                                        <input type="checkbox" name="server_images[]" value="<?= e($sPfad) ?>">
+                                        <small style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= e(basename($sPfad)) ?></small>
+                                    </span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="field__hint">Angehakte Bilder werden beim Speichern in die Slideshow übernommen.</p>
+                    </details>
+                <?php endif; ?>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Wechselzeit in Sekunden (0 = kein automatischer Wechsel)</label>
+                        <input name="interval" type="number" min="0" max="60" step="0.5"
+                               value="<?= e(number_format((int) ($cfg['interval'] ?? 5000) / 1000, 1, '.', '')) ?>">
+                    </div>
+                    <div class="field">
+                        <label>Breite</label>
+                        <select name="width">
+                            <option value="normal" <?= ($cfg['width'] ?? 'normal') === 'normal' ? 'selected' : '' ?>>normal (Inhaltsbreite)</option>
+                            <option value="voll" <?= ($cfg['width'] ?? '') === 'voll' ? 'selected' : '' ?>>volle Breite</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Übergang</label>
+                        <select name="effect">
+                            <option value="fade" <?= ($cfg['effect'] ?? 'fade') === 'fade' ? 'selected' : '' ?>>Überblenden</option>
+                            <option value="slide" <?= ($cfg['effect'] ?? '') === 'slide' ? 'selected' : '' ?>>Schieben</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Bedienung</label>
+                        <label class="check"><input type="checkbox" name="arrows" value="1" <?= !isset($cfg['arrows']) || (int) $cfg['arrows'] === 1 ? 'checked' : '' ?>> Pfeile anzeigen</label>
+                        <label class="check"><input type="checkbox" name="bullets" value="1" <?= !isset($cfg['bullets']) || (int) $cfg['bullets'] === 1 ? 'checked' : '' ?>> Punkte (Bullets) anzeigen</label>
+                    </div>
+                </div>
+
             <?php elseif ($block['type'] === 'video'): ?>
                 <div class="grid-2">
                     <div class="field">

@@ -222,6 +222,20 @@ $router->post('/admin/termine/{id}/todo-loeschen', [$termine, 'deleteTodo']);
 $router->post('/admin/termine/{id}/loeschen', [$termine, 'destroy']);
 $router->post('/admin/termine/{id}', [$termine, 'update']);
 
+// Aufgaben (Task141 eingebaut): Checklisten, Anhaenge, Freigabe fuer Externe
+$aufgaben = new App\Controllers\TaskController();
+
+$router->get('/admin/aufgaben', [$aufgaben, 'index']);
+$router->post('/admin/aufgaben', [$aufgaben, 'store']);
+$router->get('/admin/aufgaben/{id}', [$aufgaben, 'show']);
+$router->post('/admin/aufgaben/{id}', [$aufgaben, 'update']);
+$router->get('/aufgabe-datei/{id}', [$aufgaben, 'file']);
+
+// Oeffentliche Freigabe-Seiten (ohne Anmeldung, Token als Zugang)
+$router->get('/f/{token}', [$aufgaben, 'share']);
+$router->post('/f/{token}', [$aufgaben, 'shareAction']);
+$router->get('/f/{token}/datei/{id}', [$aufgaben, 'file']);
+
 $gruppen = new App\Controllers\GroupController();
 
 $router->get('/admin/gruppen', [$gruppen, 'index']);
@@ -269,6 +283,9 @@ $router->get('/api/app/verwaltung/anwesenheit', [$staffApi, 'attendance_get']);
 $router->post('/api/app/verwaltung/anwesenheit', [$staffApi, 'attendance_save']);
 $router->get('/api/app/verwaltung/beitraege', [$staffApi, 'fees_open']);
 $router->post('/api/app/verwaltung/beitraege/bezahlt', [$staffApi, 'fees_mark_paid']);
+$router->get('/api/app/verwaltung/aufgaben', [$staffApi, 'tasks_get']);
+$router->post('/api/app/verwaltung/aufgaben', [$staffApi, 'tasks_create']);
+$router->post('/api/app/verwaltung/aufgaben/{id}', [$staffApi, 'task_action']);
 
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();

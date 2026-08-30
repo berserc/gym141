@@ -886,3 +886,42 @@ CREATE TABLE IF NOT EXISTS design_templates (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_design_templates_name ON design_templates(name COLLATE NOCASE);
+
+-- ---------------------------------------------------------------------------
+-- Aufgaben (Task141 eingebaut): Checklisten, Anhaenge, Freigabe fuer Externe.
+CREATE TABLE IF NOT EXISTS club_tasks (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    status      TEXT    NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'erledigt')),
+    due_date    TEXT,                            -- YYYY-MM-DD
+    share_token TEXT UNIQUE,                     -- gesetzt = oeffentlich unter /f/<token>
+    created_by  INTEGER REFERENCES users(id),    -- Ersteller entscheidet bei Konflikten
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_club_tasks ON club_tasks(status, due_date);
+
+CREATE TABLE IF NOT EXISTS club_task_items (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL REFERENCES club_tasks(id) ON DELETE CASCADE,
+    title   TEXT    NOT NULL,
+    done    INTEGER NOT NULL DEFAULT 0,
+    sort    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_club_task_items ON club_task_items(task_id, sort);
+
+CREATE TABLE IF NOT EXISTS club_task_files (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id     INTEGER NOT NULL REFERENCES club_tasks(id) ON DELETE CASCADE,
+    filename    TEXT    NOT NULL,
+    stored_as   TEXT    NOT NULL,
+    mime        TEXT    NOT NULL DEFAULT '',
+    size        INTEGER NOT NULL DEFAULT 0,
+    uploaded_by TEXT    NOT NULL DEFAULT '',
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_club_task_files ON club_task_files(task_id);

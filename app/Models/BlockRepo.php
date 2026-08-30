@@ -26,6 +26,7 @@ final class BlockRepo
         'hero'    => ['Hero', 'Großer Aufmacher mit Bild, Titel, Untertitel und Button.'],
         'image'   => ['Bild', 'Einzelnes Bild mit Bildunterschrift und Breitenwahl.'],
         'gallery' => ['Galerie', 'Bildergalerie mit Mehrfach-Upload und Großansicht (Lightbox).'],
+        'slideshow' => ['Slideshow', 'Bilderwechsler: Bilder hochladen oder vom Server auswählen; Zeit, Pfeile und Punkte einstellbar.'],
         'video'   => ['Video', 'Eigenes Video (MP4/WebM) oder YouTube – datenschutzfreundlich erst nach Klick geladen.'],
         'schedule' => ['Wochenplan', 'Der Wochenplan aus der Terminverwaltung – wie auf der Standard-Startseite.'],
         'sections' => ['Trainingsgruppen', 'Kachelübersicht aller veröffentlichten Trainingsgruppen.'],

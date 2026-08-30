@@ -135,6 +135,27 @@ final class BlockAdminController
                 $cfg['images']  = $this->galerieBilder($id, is_array($cfg['images'] ?? null) ? $cfg['images'] : []);
                 break;
 
+            case 'slideshow':
+                $cfg['images'] = $this->galerieBilder($id, is_array($cfg['images'] ?? null) ? $cfg['images'] : []);
+
+                // Zusaetzlich: bereits am Server liegende Bilder uebernehmen
+                // (Mehrfachauswahl aus der Galerie-Ansicht des Formulars).
+                foreach ((array) ($_POST['server_images'] ?? []) as $pfad) {
+                    $pfad = self::sichererUploadPfad((string) $pfad);
+
+                    if ($pfad !== null && !in_array($pfad, array_column($cfg['images'], 'file'), true)) {
+                        $cfg['images'][] = ['file' => $pfad, 'caption' => ''];
+                    }
+                }
+
+                $sekunden        = (float) str_replace(',', '.', post('interval', '5'));
+                $cfg['interval'] = $sekunden <= 0 ? 0 : (int) round(max(2, min(60, $sekunden)) * 1000);
+                $cfg['arrows']   = post_bool('arrows');
+                $cfg['bullets']  = post_bool('bullets');
+                $cfg['width']    = post('width') === 'voll' ? 'voll' : 'normal';
+                $cfg['effect']   = post('effect') === 'slide' ? 'slide' : 'fade';
+                break;
+
             case 'video':
                 $cfg['caption'] = trim(post('caption'));
                 $cfg['youtube'] = $this->youtubeId(trim(post('youtube')));
@@ -288,6 +309,56 @@ final class BlockAdminController
         }
 
         return $ergebnis;
+    }
+
+    /**
+     * Pfad-Angabe aus der Server-Bildauswahl absichern: muss relativ sein,
+     * innerhalb des Upload-Verzeichnisses liegen und ein Bild sein.
+     */
+    private static function sichererUploadPfad(string $pfad): ?string
+    {
+        $pfad = trim(str_replace('\\', '/', $pfad), '/');
+
+        if ($pfad === '' || str_contains($pfad, '..')
+            || preg_match('/\.(jpe?g|png|gif|webp)$/i', $pfad) !== 1) {
+            return null;
+        }
+
+        $basis = rtrim((string) \App\Core\Config::get('upload_dir'), '/\\');
+
+        return is_file($basis . '/' . $pfad) ? $pfad : null;
+    }
+
+    /**
+     * Alle Bilder im Upload-Verzeichnis (neueste zuerst) fuer die
+     * Server-Bildauswahl der Slideshow.
+     *
+     * @return list<string> Pfade relativ zum Upload-Verzeichnis
+     */
+    public static function serverBilder(int $limit = 240): array
+    {
+        $basis = rtrim((string) \App\Core\Config::get('upload_dir'), '/\\');
+
+        if (!is_dir($basis)) {
+            return [];
+        }
+
+        $bilder = [];
+        $it     = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($basis, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($it as $datei) {
+            /** @var \SplFileInfo $datei */
+            if ($datei->isFile() && preg_match('/\.(jpe?g|png|gif|webp)$/i', $datei->getFilename()) === 1) {
+                $rel = str_replace('\\', '/', substr($datei->getPathname(), strlen($basis) + 1));
+                $bilder[$rel] = $datei->getMTime();
+            }
+        }
+
+        arsort($bilder);
+
+        return array_slice(array_keys($bilder), 0, $limit);
     }
 
     /** YouTube-Adresse oder -Id auf die reine Video-Id reduzieren ('' = keine). */
