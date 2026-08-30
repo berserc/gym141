@@ -44,7 +44,8 @@ $pageTitle = $title !== '' ? $title . ' | ' . $appName : $appName;
     <div class="wrap site-header__inner">
         <a class="site-brand" href="<?= e(url('/')) ?>">
             <?php if (site_logo() !== ''): ?>
-                <img src="<?= e(site_logo()) ?>" alt="" width="200" height="200">
+                <img src="<?= e(site_logo()) ?>" alt=""
+                     style="height:2.6rem;width:auto;max-width:9rem;object-fit:contain">
             <?php endif; ?>
             <span class="site-brand__name">
                 <?= e($settings['club_name'] ?? $appName) ?>

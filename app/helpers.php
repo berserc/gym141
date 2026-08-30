@@ -521,7 +521,17 @@ function theme_css(): string
     $font = \App\Models\Setting::get('theme_font');
 
     if ($font !== '' && isset(\App\Controllers\DesignController::FONTS[$font])) {
-        $regeln .= 'body{font-family:' . \App\Controllers\DesignController::FONTS[$font][1] . '}';
+        [, $stack, $datei] = \App\Controllers\DesignController::FONTS[$font];
+
+        // Webfonts liegen lokal unter assets/fonts/ (variable Schnitte).
+        if ($datei !== null) {
+            $familie = trim(explode(',', $stack)[0], " '\"");
+            $regeln  = "@font-face{font-family:'" . $familie . "';src:url('"
+                . asset('fonts/' . $datei . '.woff2') . "') format('woff2');"
+                . 'font-weight:100 900;font-style:normal;font-display:swap}' . $regeln;
+        }
+
+        $regeln .= 'body{font-family:' . $stack . '}';
     }
 
     return $css = $regeln === '' ? '' : '<style id="theme">' . $regeln . '</style>';

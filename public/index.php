@@ -442,6 +442,8 @@ $design = new App\Controllers\DesignController();
 
 $router->get('/admin/design', [$design, 'index']);
 $router->post('/admin/design', [$design, 'save']);
+$router->post('/admin/design/template', [$design, 'saveTemplate']);
+$router->post('/admin/design/template-loeschen', [$design, 'deleteTemplate']);
 
 $system = new App\Controllers\SystemController();
 $router->get('/admin/updates', [$system, 'updates']);

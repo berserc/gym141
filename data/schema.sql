@@ -873,3 +873,14 @@ CREATE TABLE IF NOT EXISTS funding_years (
 );
 
 CREATE INDEX IF NOT EXISTS idx_funding_year ON funding_years(year);
+
+-- Eigene Design-Templates des Vereins (die mitgelieferten liegen im Code
+-- und sind nicht loeschbar; hier nur die selbst gespeicherten Kopien).
+CREATE TABLE IF NOT EXISTS design_templates (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT    NOT NULL,
+    config     TEXT    NOT NULL DEFAULT '{}',   -- JSON: colors[8] + font
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_design_templates_name ON design_templates(name COLLATE NOCASE);
