@@ -360,6 +360,15 @@ $router->post('/admin/import/ausfuehren', [$import, 'run']);
 $reports = new ReportController();
 
 $router->get('/admin/auswertung/statistik', [$reports, 'statistik']);
+$router->get('/admin/auswertung/gemeinden', [$reports, 'gemeinden']);
+$router->get('/admin/auswertung/gemeinden.csv', [$reports, 'gemeindenCsv']);
+
+// Beitrags- und Foerderberechnung je Sektion (aus ATUS Weiz uebernommen).
+$funding = new App\Controllers\FundingController();
+
+$router->get('/admin/auswertung/foerderung', [$funding, 'index']);
+$router->post('/admin/auswertung/foerderung', [$funding, 'save']);
+$router->get('/admin/auswertung/foerderung.xlsx', [$funding, 'exportXlsx']);
 
 // ------------------------------------------------------------- Beitraege --
 $fees = new FeeController();

@@ -59,6 +59,8 @@ $nav = [
         ['/admin/entwicklung', 'Entwicklung', null, [], 'activity'],
         ['/admin/erfolge', 'Erfolge', null, [], 'award'],
         ['/admin/auswertung/statistik', 'Statistik', null, [], 'chart'],
+        ['/admin/auswertung/gemeinden', 'Gemeinde-Abrechnung', null, [], 'map'],
+        ['/admin/auswertung/foerderung', 'Förderung', ['superuser'], [], 'chart'],
     ],
     'Verein' => [
         ['/admin/termine', 'Termine', null, [], 'calendar'],

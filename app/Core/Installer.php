@@ -112,6 +112,7 @@ final class Installer
 
         $this->migrate($pdo);
         $this->applySchema($pdo, $root);
+        $this->migrateLegacyFees($pdo);
         $this->migrateMemberships($pdo);
         @chmod($dbPath, 0664);
 
@@ -351,6 +352,53 @@ final class Installer
 
             $pdo->exec("ALTER TABLE $table ADD COLUMN $name $definition");
             $this->say("Spalte $table.$name ergänzt.");
+        }
+    }
+
+    /**
+     * ATUS-Weiz-Herkunft: jahresbasierte Beitraege (member_fees, ein Datensatz
+     * je Mitglied und Jahr) in das Perioden-Modell (fee_entries) uebernehmen.
+     * Idempotent ueber UNIQUE(member_id, period); die Alttabelle bleibt als
+     * Beleg unangetastet. Muss NACH applySchema laufen (fee_entries noetig).
+     */
+    private function migrateLegacyFees(PDO $pdo): void
+    {
+        $alt = $pdo->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='member_fees'"
+        )->fetchColumn();
+
+        if ($alt === false) {
+            return;
+        }
+
+        $uebernommen = 0;
+
+        foreach ($pdo->query('SELECT * FROM member_fees ORDER BY year, member_id')->fetchAll() as $f) {
+            $jahr = (int) $f['year'];
+
+            $stmt = $pdo->prepare(
+                'INSERT OR IGNORE INTO fee_entries
+                    (member_id, plan_id, period, period_label, due_date, amount, paid, paid_on, paid_amount, note)
+                 VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+
+            $stmt->execute([
+                (int) $f['member_id'],
+                sprintf('%04d-01', $jahr),
+                'Jahr ' . $jahr,
+                sprintf('%04d-01-15', $jahr),
+                (float) $f['amount'],
+                (int) $f['paid'],
+                $f['paid_on'] ?: null,
+                (int) $f['paid'] === 1 ? (float) $f['amount'] : null,
+                (string) $f['note'],
+            ]);
+
+            $uebernommen += $stmt->rowCount();
+        }
+
+        if ($uebernommen > 0) {
+            $this->say("$uebernommen Jahresbeiträge aus member_fees in das Perioden-Modell übernommen.");
         }
     }
 

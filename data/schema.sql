@@ -851,3 +851,25 @@ CREATE TABLE IF NOT EXISTS user_api_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user ON user_api_tokens(user_id);
+
+-- ---------------------------------------------------------------------------
+-- Foerderjahre (aus ATUS Weiz uebernommen): je Jahr und Sektion ein Datensatz.
+CREATE TABLE IF NOT EXISTS funding_years (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    year           INTEGER NOT NULL,
+    section_id     INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+    base_funding   REAL    NOT NULL DEFAULT 0,
+    members_active INTEGER NOT NULL DEFAULT 0,
+    children       INTEGER NOT NULL DEFAULT 0,
+    fees           REAL    NOT NULL DEFAULT 0,
+    child_bonus    REAL    NOT NULL DEFAULT 0,
+    fee_share      REAL    NOT NULL DEFAULT 0,
+    calculated     REAL    NOT NULL DEFAULT 0,   -- rechnerische Foerderung
+    paid_out       REAL    NOT NULL DEFAULT 0,   -- tatsaechliche Auszahlung
+    note           TEXT    NOT NULL DEFAULT '',
+    closed         INTEGER NOT NULL DEFAULT 0,   -- Jahr abgeschlossen
+    updated_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (year, section_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_funding_year ON funding_years(year);

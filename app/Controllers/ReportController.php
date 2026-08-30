@@ -137,6 +137,119 @@ final class ReportController
     }
 
     /** @return array{0:string,1:list<int>} */
+    /**
+     * Abrechnung nach Gemeinde (aus ATUS Weiz uebernommen, angepasst an das
+     * Perioden-Beitragsmodell): Mitglieder, Jugend, Soll- und bezahlte
+     * Beitraege je Gemeinde - Grundlage fuer Gemeindefoerderungen.
+     */
+    public function gemeinden(): void
+    {
+        AuthController::requireLogin();
+
+        $year             = max(1900, min(2200, (int) (query('year') ?: (string) Setting::feeYear())));
+        $sectionId        = (int) query('section_id');
+        [$scope, $params] = $this->scope();
+
+        $conditions = ['m.deleted_at IS NULL', 'm.archived_at IS NULL', $scope];
+        $args       = $params;
+
+        if ($sectionId > 0 && Auth::canAccessSection($sectionId)) {
+            $conditions[] = 'EXISTS (SELECT 1 FROM member_sections ms
+                                      WHERE ms.member_id = m.id AND ms.section_id = ?)';
+            $args[]       = $sectionId;
+        }
+
+        if (query('status') !== '') {
+            $conditions[] = 'm.status = ?';
+            $args[]       = query('status');
+        }
+
+        $where = implode(' AND ', $conditions);
+
+        $rows = Database::all(
+            "SELECT CASE WHEN m.gemeinde = '' THEN '(ohne Gemeinde)' ELSE m.gemeinde END AS gemeinde,
+                    COUNT(*)                                                            AS mitglieder,
+                    SUM(CASE WHEN m.status = 'aktiv' THEN 1 ELSE 0 END)                  AS aktiv,
+                    SUM(CASE WHEN m.birthdate IS NOT NULL
+                              AND m.birthdate > date('now', '-18 years') THEN 1 ELSE 0 END) AS jugend,
+                    SUM((SELECT COALESCE(SUM(ms.fee_amount), 0)
+                           FROM member_sections ms WHERE ms.member_id = m.id)) AS beitrag_soll,
+                    COALESCE(SUM(f.amount_paid), 0)                                      AS beitrag_bezahlt,
+                    COALESCE(SUM(f.n_paid), 0)                                           AS anzahl_bezahlt
+               FROM members m
+               LEFT JOIN (
+                    SELECT member_id,
+                           SUM(CASE WHEN paid = 1 THEN COALESCE(paid_amount, amount) ELSE 0 END) AS amount_paid,
+                           SUM(CASE WHEN paid = 1 THEN 1 ELSE 0 END)                             AS n_paid
+                      FROM fee_entries
+                     WHERE period LIKE ? || '-%'
+                     GROUP BY member_id
+               ) f ON f.member_id = m.id
+              WHERE $where
+              GROUP BY gemeinde
+              ORDER BY mitglieder DESC, gemeinde COLLATE NOCASE",
+            array_merge([(string) $year], $args)
+        );
+
+        View::display('admin/reports/gemeinden', [
+            'title'    => 'Abrechnung nach Gemeinde',
+            'rows'     => $rows,
+            'year'     => $year,
+            'sections' => SectionRepo::forUser(Auth::allowedSectionIds()),
+            'filters'  => ['section_id' => $sectionId, 'status' => query('status')],
+        ], 'layouts/admin');
+    }
+
+    public function gemeindenCsv(): void
+    {
+        AuthController::requireLogin();
+
+        $year             = max(1900, min(2200, (int) (query('year') ?: (string) Setting::feeYear())));
+        [$scope, $params] = $this->scope();
+
+        $rows = Database::all(
+            "SELECT CASE WHEN m.gemeinde = '' THEN '(ohne Gemeinde)' ELSE m.gemeinde END AS gemeinde,
+                    s.name AS sektion,
+                    COUNT(*) AS mitglieder,
+                    SUM(CASE WHEN ms.status = 'aktiv' THEN 1 ELSE 0 END) AS aktiv,
+                    SUM(ms.fee_amount) AS beitrag_soll
+               FROM members m
+               JOIN member_sections ms ON ms.member_id = m.id
+               JOIN sections s ON s.id = ms.section_id
+              WHERE m.deleted_at IS NULL AND m.archived_at IS NULL AND $scope
+              GROUP BY gemeinde, s.name
+              ORDER BY gemeinde COLLATE NOCASE, s.name COLLATE NOCASE",
+            $params
+        );
+
+        \App\Core\Audit::log('report_export', 'report', null, 'Gemeinden ' . $year);
+
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="gemeinden-' . $year . '.csv"');
+
+        $out = fopen('php://output', 'wb');
+
+        if ($out === false) {
+            return;
+        }
+
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Gemeinde', 'Sektion', 'Mitglieder', 'davon aktiv', 'Beitrag Soll'], ';');
+
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                $row['gemeinde'],
+                $row['sektion'],
+                $row['mitglieder'],
+                $row['aktiv'],
+                number_format((float) $row['beitrag_soll'], 2, ',', ''),
+            ], ';');
+        }
+
+        fclose($out);
+        exit;
+    }
+
     private function scope(): array
     {
         $allowed = Auth::allowedSectionIds();
