@@ -183,6 +183,13 @@ final class Installer
         ]);
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_page_blocks_section ON page_blocks(section_id, sort_order, id)');
 
+        // Seit 1.5.0: Herkunft eines Gewichtseintrags ('' = Verwaltung/Website,
+        // 'app' = von der Gym141-App uebermittelt). Die App verwaltet nur die
+        // eigenen Eintraege und ueberschreibt nie Messungen des Trainers.
+        $this->addColumns($pdo, 'member_weights', [
+            'source' => "TEXT NOT NULL DEFAULT ''",
+        ]);
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

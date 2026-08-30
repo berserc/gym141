@@ -142,6 +142,89 @@ final class MemberApiController
         ]);
     }
 
+    // -------------------------------------------------------------- Gewicht --
+
+    /** Gewichtsverlauf (beide Quellen; die App zeigt Trainer-Messungen nur an). */
+    public function weights_get(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $rows = Database::all(
+            'SELECT measured_on, weight, note, source FROM member_weights
+              WHERE member_id = ? ORDER BY measured_on DESC, id DESC',
+            [(int) $member['id']]
+        );
+
+        $this->json(['entries' => array_map(static fn (array $r): array => [
+            'date'   => (string) $r['measured_on'],
+            'kg'     => (float) $r['weight'],
+            'note'   => (string) $r['note'],
+            'source' => (string) $r['source'],
+        ], $rows)]);
+    }
+
+    /**
+     * Gewichtsverlauf der App uebermitteln (Spiegel-Semantik): ersetzt ALLE
+     * Eintraege mit source='app' durch die gesendete Liste. Messungen der
+     * Verwaltung (source='') bleiben unberuehrt. Damit ist der Abgleich
+     * idempotent und Offline-Loeschungen in der App wirken auch am Server.
+     */
+    public function weights_put(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $entries = (array) ($this->body()['entries'] ?? []);
+
+        if (count($entries) > 1000) {
+            $this->json(['error' => 'Zu viele Einträge.'], 422);
+        }
+
+        $sauber = [];
+
+        foreach ($entries as $entry) {
+            $datum   = date_create((string) ($entry['date'] ?? ''));
+            $gewicht = (float) ($entry['kg'] ?? 0);
+
+            if ($datum === false || $gewicht <= 20 || $gewicht > 400) {
+                $this->json(['error' => 'Ungültiger Eintrag (Datum oder Gewicht in kg, 20–400).'], 422);
+            }
+
+            $sauber[] = [
+                'measured_on' => $datum->format('Y-m-d'),
+                'weight'      => round($gewicht, 1),
+                'note'        => mb_substr(trim((string) ($entry['note'] ?? '')), 0, 200),
+            ];
+        }
+
+        $memberId = (int) $member['id'];
+
+        Database::transaction(static function () use ($memberId, $sauber): void {
+            Database::run("DELETE FROM member_weights WHERE member_id = ? AND source = 'app'", [$memberId]);
+
+            foreach ($sauber as $row) {
+                Database::insert('member_weights', $row + ['member_id' => $memberId, 'source' => 'app']);
+            }
+        });
+
+        $this->json(['ok' => true, 'count' => count($sauber)]);
+    }
+
+    /**
+     * Widerruf der Datenfreigabe: loescht die von der App uebermittelten
+     * Gewichtsdaten (source='app') beim Verein. Trainer-Messungen bleiben.
+     */
+    public function weights_delete(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $geloescht = Database::run(
+            "DELETE FROM member_weights WHERE member_id = ? AND source = 'app'",
+            [(int) $member['id']]
+        )->rowCount();
+
+        $this->json(['ok' => true, 'deleted' => $geloescht]);
+    }
+
     // --------------------------------------------------------------- Intern --
 
     /**

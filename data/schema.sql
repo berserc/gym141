@@ -338,6 +338,8 @@ CREATE TABLE IF NOT EXISTS member_weights (
     measured_on TEXT    NOT NULL,                -- YYYY-MM-DD
     weight      REAL    NOT NULL,                -- kg
     note        TEXT    NOT NULL DEFAULT '',
+    -- Herkunft: '' = Verwaltung/Website, 'app' = von der Gym141-App
+    source      TEXT    NOT NULL DEFAULT '',
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 

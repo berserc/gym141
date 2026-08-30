@@ -238,6 +238,9 @@ if ($memberArea) {
     $router->post('/api/app/logout', [$app, 'logout']);
     $router->get('/api/app/profil', [$app, 'profile_get']);
     $router->post('/api/app/profil', [$app, 'profile_update']);
+    $router->get('/api/app/gewicht', [$app, 'weights_get']);
+    $router->post('/api/app/gewicht', [$app, 'weights_put']);
+    $router->post('/api/app/gewicht/loeschen', [$app, 'weights_delete']);
 
     $mitglied = new App\Controllers\MemberAreaController();
 
