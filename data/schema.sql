@@ -769,6 +769,8 @@ CREATE TABLE IF NOT EXISTS event_tasks (
     event_id   INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
     title      TEXT    NOT NULL,
     note       TEXT    NOT NULL DEFAULT '',
+    -- Task141-Freigabe-Link (extern), gesetzt nach Kopplung
+    task141_url TEXT   NOT NULL DEFAULT '',
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 

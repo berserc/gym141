@@ -113,6 +113,28 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
             </div>
 
             <div class="field">
+                <label for="task141_url">Task141-Kopplung: Dienst-Adresse</label>
+                <input id="task141_url" name="task141_url" type="text"
+                       placeholder="https://task141.gym141.com"
+                       value="<?= e($value('task141_url')) ?>">
+                <p class="field__hint">
+                    Mit einer Task141-Kopplung lassen sich Aufgaben aus der
+                    Event-Organisation für Externe freigeben (Checkliste,
+                    Datei-Uploads – ohne Vereins-Zugang).
+                </p>
+            </div>
+
+            <div class="field">
+                <label for="task141_service_key">Task141-Kopplung: Service-Schlüssel</label>
+                <input id="task141_service_key" name="task141_service_key" type="text"
+                       placeholder="sk_…"
+                       value="<?= e($value('task141_service_key')) ?>">
+                <p class="field__hint">
+                    Wird im Task141-Konto unter „Kopplung“ erzeugt.
+                </p>
+            </div>
+
+            <div class="field">
                 <label for="reminder_email">Empfänger der Beitragserinnerung</label>
                 <input id="reminder_email" name="reminder_email" type="email"
                        value="<?= e($value('reminder_email')) ?>">

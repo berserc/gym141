@@ -195,6 +195,63 @@ final class TermineController
     }
 
     /** Aufgabenbereich anlegen bzw. bearbeiten. */
+    /**
+     * Orga-Aufgabe an den gekoppelten Task141-Dienst uebergeben und fuer
+     * Externe freigeben (Einstellungen: task141_url + task141_service_key).
+     * Der Freigabe-Link wird an der Aufgabe gespeichert und im Orga-Bereich
+     * angezeigt - Helfer ohne Vereins-Zugang koennen Checkliste und Dateien
+     * beisteuern.
+     */
+    public function task141Share(array $args): void
+    {
+        AuthController::requireRole('superuser', 'kassier', 'sektionsleiter');
+        Csrf::verify();
+
+        $event = $this->findEvent((int) ($args['id'] ?? 0));
+        $this->findTask((int) ($args['tid'] ?? 0), (int) $event['id']);
+        $task = Database::one('SELECT * FROM event_tasks WHERE id = ?', [(int) ($args['tid'] ?? 0)]);
+
+        $url = rtrim(\App\Models\Setting::get('task141_url'), '/');
+        $key = trim(\App\Models\Setting::get('task141_service_key'));
+
+        if ($url === '' || $key === '') {
+            Flash::error('Task141 ist nicht gekoppelt – Adresse und Service-Schlüssel unter Einstellungen eintragen.');
+            Url::redirect('/admin/termine/' . $event['id'] . '/orga');
+        }
+
+        $ch = curl_init($url . '/api/service/aufgaben');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode([
+                'title'       => $task['title'],
+                'description' => trim((string) $task['note'] . "\n\nTermin: " . $event['title']
+                    . ' am ' . date('d.m.Y', strtotime((string) $event['starts_on']))),
+                'due_date'    => $event['starts_on'],
+                'source'      => 'gym141',
+                'source_ref'  => \App\Models\Setting::get('club_name') . ' / ' . $event['title'],
+                'share'       => true,
+            ], JSON_UNESCAPED_UNICODE),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $key],
+        ]);
+
+        $antwort = json_decode((string) curl_exec($ch), true);
+        $status  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $share   = $antwort['task']['share_url'] ?? null;
+
+        if ($status !== 200 || !is_string($share)) {
+            Flash::error('Task141-Freigabe fehlgeschlagen: ' . ($antwort['error'] ?? 'Dienst nicht erreichbar.'));
+            Url::redirect('/admin/termine/' . $event['id'] . '/orga');
+        }
+
+        Database::update('event_tasks', (int) $task['id'], ['task141_url' => $share]);
+        Audit::log('task141_share', 'event_tasks', (int) $task['id'], (string) $task['title']);
+        Flash::success('Aufgabe für Externe freigegeben – der Task141-Link steht bei der Aufgabe.');
+        Url::redirect('/admin/termine/' . $event['id'] . '/orga');
+    }
+
     public function saveTask(array $args): void
     {
         AuthController::requireRole('superuser', 'kassier', 'sektionsleiter');

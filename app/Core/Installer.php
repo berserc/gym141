@@ -191,6 +191,11 @@ final class Installer
             'source' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
+        // Seit 1.10.0: Task141-Freigabe-Link an Orga-Aufgaben.
+        $this->addColumns($pdo, 'event_tasks', [
+            'task141_url' => "TEXT NOT NULL DEFAULT ''",
+        ]);
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

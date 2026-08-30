@@ -20,6 +20,8 @@ final class SettingsController
         'club_email', 'club_phone', 'whatsapp_number', 'club_iban', 'club_bank',
         'club_tagline', 'home_title', 'home_text', 'fee_year', 'fee_options',
         'reminder_email',
+        // Task141-Kopplung (Aufgaben-Freigaben fuer Externe)
+        'task141_url', 'task141_service_key',
     ];
 
     public function index(): void

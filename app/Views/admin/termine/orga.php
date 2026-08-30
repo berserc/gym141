@@ -49,6 +49,11 @@ $offen         = count(array_filter($todos, static fn (array $t): bool => (int) 
                 <div class="card__head">
                     <h2><?= e($task['title']) ?>
                         <span class="badge"><?= count($people[(int) $task['id']] ?? []) ?> Person(en)</span>
+                        <?php if (($task['task141_url'] ?? '') !== ''): ?>
+                            <a class="badge" style="text-decoration:none" target="_blank" rel="noopener"
+                               href="<?= e((string) $task['task141_url']) ?>"
+                               title="Task141-Freigabe für Externe – Link teilen">extern freigegeben ↗</a>
+                        <?php endif; ?>
                     </h2>
                     <?php if ($darfSchreiben): ?>
                         <div>
@@ -73,6 +78,14 @@ $offen         = count(array_filter($todos, static fn (array $t): bool => (int) 
                                 <input type="hidden" name="task_id" value="<?= (int) $task['id'] ?>">
                                 <button class="linklike linklike--danger" type="submit">löschen</button>
                             </form>
+                            <?php if (($task['task141_url'] ?? '') === '' && \App\Models\Setting::get('task141_url') !== ''): ?>
+                                <form method="post" class="inline"
+                                      action="<?= e(url('/admin/termine/' . $id . '/aufgabe/' . $task['id'] . '/task141')) ?>">
+                                    <?= csrf_field() ?>
+                                    <button class="linklike" type="submit"
+                                            title="Aufgabe über Task141 für Helfer außerhalb des Vereins freigeben">für Externe freigeben</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>

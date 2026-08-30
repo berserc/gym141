@@ -213,6 +213,7 @@ $router->get('/admin/termine/{id}/orga', [$termine, 'orga']);
 $router->post('/admin/termine/{id}/aufgabe', [$termine, 'saveTask']);
 $router->post('/admin/termine/{id}/aufgabe-loeschen', [$termine, 'deleteTask']);
 $router->post('/admin/termine/{id}/aufgabe/{tid}/person', [$termine, 'addTaskPerson']);
+$router->post('/admin/termine/{id}/aufgabe/{tid}/task141', [$termine, 'task141Share']);
 $router->post('/admin/termine/{id}/aufgabe/{tid}', [$termine, 'saveTask']);
 $router->post('/admin/termine/{id}/person-loeschen', [$termine, 'removeTaskPerson']);
 $router->post('/admin/termine/{id}/todo', [$termine, 'addTodo']);
