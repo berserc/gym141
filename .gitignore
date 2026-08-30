@@ -22,3 +22,4 @@ Thumbs.db
 *.bak
 data/.setup-done
 dist/
+data/aufgaben/
