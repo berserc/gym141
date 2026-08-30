@@ -20,6 +20,11 @@
         "app/config.php"
     ],
 
+    "refresh": [
+        "data/schema.sql",
+        "data/seed"
+    ],
+
     "writable": [
         "data",
         "public/uploads"

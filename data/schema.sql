@@ -822,3 +822,18 @@ CREATE TABLE IF NOT EXISTS schedule_slot_sections (
     section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
     PRIMARY KEY (slot_id, section_id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Zugriffstoken der Gym141-App (Mitglieder-API, /api/app/*).
+-- Das Token verlaesst den Server nur einmal bei der Anmeldung;
+-- gespeichert wird ausschliesslich der SHA-256-Hash.
+CREATE TABLE IF NOT EXISTS member_api_tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id    INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    token_hash   TEXT    NOT NULL UNIQUE,
+    device_name  TEXT    NOT NULL DEFAULT '',
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    last_used_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_member_tokens_member ON member_api_tokens(member_id);

@@ -231,6 +231,14 @@ $router->post('/admin/gruppen/{id}/mitglied-entfernen', [$gruppen, 'removeMember
 
 // -------------------------------------------------------- Mitgliederbereich --
 if ($memberArea) {
+    // JSON-API der Gym141-App (Bearer-Token, Anmeldung mit Mitglieder-Login).
+    $app = new App\Controllers\MemberApiController();
+
+    $router->post('/api/app/login', [$app, 'login']);
+    $router->post('/api/app/logout', [$app, 'logout']);
+    $router->get('/api/app/profil', [$app, 'profile_get']);
+    $router->post('/api/app/profil', [$app, 'profile_update']);
+
     $mitglied = new App\Controllers\MemberAreaController();
 
     $router->get('/mitglied/login', [$mitglied, 'showLogin']);
