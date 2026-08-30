@@ -17,6 +17,7 @@
     <title><?= e($title !== '' ? $title : 'Mitglieder-Login') ?></title>
     <meta name="theme-color" content="#101014">
     <link rel="stylesheet" href="<?= e(asset('css/site.css')) ?>">
+    <?= theme_css() ?>
     <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
 </head>
 <body class="page member-blank">

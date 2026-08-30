@@ -489,3 +489,40 @@ function site_logo(): string
 
     return $logo = '';
 }
+
+/**
+ * Vom Design-Baukasten (Verwaltung -> Design) gesetzte Farben und Schrift
+ * als Inline-Style fuer die oeffentliche Website. Leerer String, wenn das
+ * Standard-Design aktiv ist. Wird in den Public-/Mitglieder-Layouts nach
+ * site.css eingebunden und ueberschreibt dessen CSS-Variablen.
+ */
+function theme_css(): string
+{
+    static $css = null;
+
+    if ($css !== null) {
+        return $css;
+    }
+
+    $variablen = [];
+
+    foreach (\App\Controllers\DesignController::COLORS as $key => $def) {
+        $wert = \App\Models\Setting::get($key);
+
+        if ($wert !== '' && preg_match('/^#[0-9a-f]{6}$/i', $wert)) {
+            foreach ($def[0] as $cssVar) {
+                $variablen[] = $cssVar . ':' . $wert;
+            }
+        }
+    }
+
+    $regeln = $variablen === [] ? '' : ':root{' . implode(';', $variablen) . '}';
+
+    $font = \App\Models\Setting::get('theme_font');
+
+    if ($font !== '' && isset(\App\Controllers\DesignController::FONTS[$font])) {
+        $regeln .= 'body{font-family:' . \App\Controllers\DesignController::FONTS[$font][1] . '}';
+    }
+
+    return $css = $regeln === '' ? '' : '<style id="theme">' . $regeln . '</style>';
+}

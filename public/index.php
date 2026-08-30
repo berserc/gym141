@@ -437,6 +437,12 @@ $settings = new SettingsController();
 $router->get('/admin/einstellungen', [$settings, 'index']);
 $router->post('/admin/einstellungen', [$settings, 'save']);
 
+// Design-Baukasten fuer die oeffentliche Website (Farben + Schrift).
+$design = new App\Controllers\DesignController();
+
+$router->get('/admin/design', [$design, 'index']);
+$router->post('/admin/design', [$design, 'save']);
+
 $system = new App\Controllers\SystemController();
 $router->get('/admin/updates', [$system, 'updates']);
 $router->post('/admin/updates/installieren', [$system, 'installUpdate']);
