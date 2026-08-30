@@ -256,6 +256,15 @@ if ($memberArea) {
     $router->post('/mitglied/gewicht', [$mitglied, 'saveWeight']);
 }
 
+// JSON-API der Verwaltungs-Apps (Admin-/Trainer-App) – unabhaengig vom
+// Mitgliederbereich immer verfuegbar, Anmeldung mit Verwaltungs-Benutzer.
+$staffApi = new App\Controllers\StaffApiController();
+
+$router->post('/api/app/verwaltung/login', [$staffApi, 'login']);
+$router->post('/api/app/verwaltung/logout', [$staffApi, 'logout']);
+$router->get('/api/app/verwaltung/uebersicht', [$staffApi, 'overview']);
+$router->get('/api/app/verwaltung/mitglieder', [$staffApi, 'members']);
+
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();
 

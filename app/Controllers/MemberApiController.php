@@ -332,8 +332,25 @@ final class MemberApiController
     private function club(): array
     {
         return [
-            'name' => Setting::get('club_name') ?: (string) \App\Core\Config::get('app_name', 'Gym141'),
+            'name'     => Setting::get('club_name') ?: (string) \App\Core\Config::get('app_name', 'Gym141'),
+            'logo_url' => self::logoUrl(),
         ];
+    }
+
+    /** Absolute URL des Vereinslogos ('' = keines hinterlegt). */
+    public static function logoUrl(): string
+    {
+        $logo = site_logo();
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+        if ($logo === '' || $host === '') {
+            return '';
+        }
+
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+
+        return ($https ? 'https' : 'http') . '://' . $host . $logo;
     }
 
     /** @return array<string,mixed> JSON- oder Formular-Body. */

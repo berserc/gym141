@@ -839,3 +839,15 @@ CREATE TABLE IF NOT EXISTS member_api_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_member_tokens_member ON member_api_tokens(member_id);
+
+-- Zugriffstoken der Verwaltungs-Apps (Admin-/Trainer-App, /api/app/verwaltung/*).
+CREATE TABLE IF NOT EXISTS user_api_tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash   TEXT    NOT NULL UNIQUE,
+    device_name  TEXT    NOT NULL DEFAULT '',
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    last_used_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_tokens_user ON user_api_tokens(user_id);
