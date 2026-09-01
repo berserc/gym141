@@ -48,6 +48,11 @@ $dreissigTage = count(array_filter(
         </div>
 
         <div class="m-field">
+            <label for="w-time">Uhrzeit</label>
+            <input id="w-time" name="measured_time" type="time" value="<?= e(date('H:i')) ?>">
+        </div>
+
+        <div class="m-field">
             <label for="w-kg">Gewicht (kg)</label>
             <input id="w-kg" name="weight" inputmode="decimal" required placeholder="z. B. 72,4">
         </div>
@@ -66,7 +71,7 @@ $dreissigTage = count(array_filter(
             <ul class="m-list">
                 <?php foreach (array_reverse($weights) as $w): ?>
                     <li>
-                        <?= e(format_date((string) $w['measured_on'])) ?> –
+                        <?= e(format_date((string) $w['measured_on'])) ?><?= (string) ($w['measured_time'] ?? '') !== '' ? ', ' . e((string) $w['measured_time']) . ' Uhr' : '' ?> –
                         <strong><?= e(number_format((float) $w['weight'], 1, ',', '.')) ?> kg</strong>
                         <?= (string) $w['note'] !== '' ? '<span class="muted-dark">(' . e($w['note']) . ')</span>' : '' ?>
                     </li>

@@ -70,6 +70,11 @@ $schnitt = $letzteBewertungen !== []
             </div>
 
             <div class="field field--xs">
+                <label for="w-time">Uhrzeit</label>
+                <input id="w-time" name="measured_time" type="time" value="<?= e(date('H:i')) ?>">
+            </div>
+
+            <div class="field field--xs">
                 <label for="w-kg">Gewicht (kg)</label>
                 <input id="w-kg" name="weight" inputmode="decimal" required placeholder="z. B. 72,4">
             </div>
@@ -92,7 +97,7 @@ $schnitt = $letzteBewertungen !== []
                     <tbody>
                     <?php foreach (array_reverse($weights) as $w): ?>
                         <tr>
-                            <td><?= e(format_date((string) $w['measured_on'])) ?></td>
+                            <td><?= e(format_date((string) $w['measured_on'])) ?><?= (string) ($w['measured_time'] ?? '') !== '' ? ', ' . e((string) $w['measured_time']) : '' ?></td>
                             <td class="num"><?= e(number_format((float) $w['weight'], 1, ',', '.')) ?> kg</td>
                             <td><?= e($w['note']) ?></td>
                             <td class="row-actions">

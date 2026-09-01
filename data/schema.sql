@@ -336,6 +336,8 @@ CREATE TABLE IF NOT EXISTS member_weights (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id   INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
     measured_on TEXT    NOT NULL,                -- YYYY-MM-DD
+    -- Uhrzeit HH:MM ('' = unbekannt/Altbestand); mehrere Messungen pro Tag
+    measured_time TEXT  NOT NULL DEFAULT '',
     weight      REAL    NOT NULL,                -- kg
     note        TEXT    NOT NULL DEFAULT '',
     -- Herkunft: '' = Verwaltung/Website, 'app' = von der Gym141-App

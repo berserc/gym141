@@ -166,13 +166,14 @@ final class MemberApiController
         [, $member] = $this->requireToken();
 
         $rows = Database::all(
-            'SELECT measured_on, weight, note, source FROM member_weights
-              WHERE member_id = ? ORDER BY measured_on DESC, id DESC',
+            'SELECT measured_on, measured_time, weight, note, source FROM member_weights
+              WHERE member_id = ? ORDER BY measured_on DESC, measured_time DESC, id DESC',
             [(int) $member['id']]
         );
 
         $this->json(['entries' => array_map(static fn (array $r): array => [
             'date'   => (string) $r['measured_on'],
+            'time'   => (string) ($r['measured_time'] ?? ''),
             'kg'     => (float) $r['weight'],
             'note'   => (string) $r['note'],
             'source' => (string) $r['source'],
@@ -205,10 +206,14 @@ final class MemberApiController
                 $this->json(['error' => 'Ungültiger Eintrag (Datum oder Gewicht in kg, 20–400).'], 422);
             }
 
+            $zeit = trim((string) ($entry['time'] ?? ''));
+
             $sauber[] = [
-                'measured_on' => $datum->format('Y-m-d'),
-                'weight'      => round($gewicht, 1),
-                'note'        => mb_substr(trim((string) ($entry['note'] ?? '')), 0, 200),
+                'measured_on'   => $datum->format('Y-m-d'),
+                // Uhrzeit HH:MM (mehrere Messungen pro Tag); '' = unbekannt
+                'measured_time' => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $zeit) === 1 ? $zeit : '',
+                'weight'        => round($gewicht, 1),
+                'note'          => mb_substr(trim((string) ($entry['note'] ?? '')), 0, 200),
             ];
         }
 

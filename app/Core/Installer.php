@@ -189,6 +189,9 @@ final class Installer
         // eigenen Eintraege und ueberschreibt nie Messungen des Trainers.
         $this->addColumns($pdo, 'member_weights', [
             'source' => "TEXT NOT NULL DEFAULT ''",
+            // Seit 1.13.0: Uhrzeit HH:MM ('' = Altbestand) - mehrere
+            // Messungen pro Tag sind moeglich.
+            'measured_time' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
         // Seit 1.10.0: Task141-Freigabe-Link an Orga-Aufgaben.

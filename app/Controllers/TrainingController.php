@@ -267,7 +267,7 @@ final class TrainingController
     public static function weights(int $memberId): array
     {
         return Database::all(
-            'SELECT * FROM member_weights WHERE member_id = ? ORDER BY measured_on, id',
+            'SELECT * FROM member_weights WHERE member_id = ? ORDER BY measured_on, measured_time, id',
             [$memberId]
         );
     }
@@ -336,11 +336,15 @@ final class TrainingController
             Url::redirect('/admin/mitglieder/' . $id . '/entwicklung');
         }
 
+        $zeit = trim(post('measured_time'));
+
         Database::insert('member_weights', [
-            'member_id'   => $id,
-            'measured_on' => $datum,
-            'weight'      => $gewicht,
-            'note'        => post('note'),
+            'member_id'     => $id,
+            'measured_on'   => $datum,
+            // Mehrere Messungen pro Tag - die Uhrzeit unterscheidet sie.
+            'measured_time' => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $zeit) === 1 ? $zeit : '',
+            'weight'        => $gewicht,
+            'note'          => post('note'),
         ]);
 
         Flash::success('Gewicht erfasst: ' . number_format($gewicht, 1, ',', '.') . ' kg.');

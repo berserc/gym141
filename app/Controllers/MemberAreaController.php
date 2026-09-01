@@ -215,11 +215,15 @@ final class MemberAreaController
             Url::redirect('/mitglied/entwicklung');
         }
 
+        $zeit = trim(post('measured_time'));
+
         Database::insert('member_weights', [
-            'member_id'   => (int) $member['id'],
-            'measured_on' => $datum,
-            'weight'      => $gewicht,
-            'note'        => post('note'),
+            'member_id'     => (int) $member['id'],
+            'measured_on'   => $datum,
+            // Mehrere Messungen pro Tag - die Uhrzeit unterscheidet sie.
+            'measured_time' => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $zeit) === 1 ? $zeit : '',
+            'weight'        => $gewicht,
+            'note'          => post('note'),
         ]);
 
         Flash::success('Gewicht gespeichert: ' . number_format($gewicht, 1, ',', '.') . ' kg.');
