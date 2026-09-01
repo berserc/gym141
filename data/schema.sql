@@ -940,3 +940,55 @@ CREATE TABLE IF NOT EXISTS user_roles (
     )),
     PRIMARY KEY (user_id, role)
 );
+
+-- ------------------------------------------------------------- Bankimport --
+-- Kontoauszuege/-exports verschiedener Banken (CSV/XLSX). Jede Zeile wird
+-- ueber einen Hash dedupliziert - erneutes Hochladen uebernimmt nichts doppelt.
+CREATE TABLE IF NOT EXISTS bank_imports (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename        TEXT    NOT NULL,
+    imported_by     INTEGER REFERENCES users(id),
+    row_count       INTEGER NOT NULL DEFAULT 0,
+    new_count       INTEGER NOT NULL DEFAULT 0,
+    duplicate_count INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS bank_transactions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    import_id   INTEGER REFERENCES bank_imports(id) ON DELETE SET NULL,
+    booked_on   TEXT    NOT NULL,                 -- YYYY-MM-DD
+    amount      REAL    NOT NULL,                 -- + Eingang / - Ausgang
+    currency    TEXT    NOT NULL DEFAULT 'EUR',
+    counterpart TEXT    NOT NULL DEFAULT '',      -- Name Auftraggeber/Empfaenger
+    iban        TEXT    NOT NULL DEFAULT '',
+    reference   TEXT    NOT NULL DEFAULT '',      -- Verwendungszweck/Buchungstext
+    hash        TEXT    NOT NULL UNIQUE,          -- Duplikatschutz ueber Importe hinweg
+    -- unbestimmt (muss bearbeitet werden) | vorgeschlagen (Auto-Zuordnung,
+    -- noch zu bestaetigen) | uebernommen (endgueltig)
+    status      TEXT    NOT NULL DEFAULT 'unbestimmt'
+                        CHECK (status IN ('unbestimmt', 'vorgeschlagen', 'uebernommen')),
+    member_id   INTEGER REFERENCES members(id) ON DELETE SET NULL,
+    category    TEXT    NOT NULL DEFAULT '',      -- z. B. mitgliedsbeitrag, verkauf
+    note        TEXT    NOT NULL DEFAULT '',
+    assigned_by INTEGER REFERENCES users(id),
+    assigned_at TEXT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_banktx_booked ON bank_transactions(booked_on DESC);
+CREATE INDEX IF NOT EXISTS idx_banktx_status ON bank_transactions(status);
+CREATE INDEX IF NOT EXISTS idx_banktx_member ON bank_transactions(member_id);
+
+-- Belege zu Zahlungen (Rechnungen, Fotos, Dokumente)
+CREATE TABLE IF NOT EXISTS bank_transaction_files (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL REFERENCES bank_transactions(id) ON DELETE CASCADE,
+    filename       TEXT    NOT NULL,
+    stored_as      TEXT    NOT NULL,
+    mime           TEXT    NOT NULL DEFAULT '',
+    size           INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id);

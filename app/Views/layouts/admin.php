@@ -73,6 +73,7 @@ $nav = [
     ],
     'Finanzen' => [
         ['/admin/buchhaltung', 'Buchhaltung', ['superuser', 'kassier'], [], 'book'],
+        ['/admin/bank', 'Zahlungen (Bank)', ['superuser', 'kassier'], ['/admin/bank/import'], 'card'],
         ['/admin/buchhaltung/auswertung', 'Auswertung', ['superuser', 'kassier'], [], 'trend'],
     ],
     'System' => [
@@ -94,7 +95,7 @@ $mode = Auth::mode();
 $modeWhitelist = [
     'kassier' => [
         '/admin', '/admin/mitglieder', '/admin/beitraege', '/admin/auswertung/statistik',
-        '/admin/verein', '/admin/dateien', '/admin/buchhaltung', '/admin/buchhaltung/auswertung',
+        '/admin/verein', '/admin/dateien', '/admin/buchhaltung', '/admin/bank', '/admin/buchhaltung/auswertung',
     ],
     'trainer' => [
         '/admin', '/admin/mitglieder', '/admin/gruppen', '/admin/anwesenheit',

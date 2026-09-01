@@ -215,6 +215,49 @@ final class Installer
                      WHERE role IN ('superuser', 'kassier', 'sektionsleiter')
                        AND id NOT IN (SELECT user_id FROM user_roles)");
 
+        // Seit 1.15.0: Bankimport (Kontoauszuege einspielen und zuordnen).
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bank_imports (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename        TEXT    NOT NULL,
+            imported_by     INTEGER REFERENCES users(id),
+            row_count       INTEGER NOT NULL DEFAULT 0,
+            new_count       INTEGER NOT NULL DEFAULT 0,
+            duplicate_count INTEGER NOT NULL DEFAULT 0,
+            created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bank_transactions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            import_id   INTEGER REFERENCES bank_imports(id) ON DELETE SET NULL,
+            booked_on   TEXT    NOT NULL,
+            amount      REAL    NOT NULL,
+            currency    TEXT    NOT NULL DEFAULT 'EUR',
+            counterpart TEXT    NOT NULL DEFAULT '',
+            iban        TEXT    NOT NULL DEFAULT '',
+            reference   TEXT    NOT NULL DEFAULT '',
+            hash        TEXT    NOT NULL UNIQUE,
+            status      TEXT    NOT NULL DEFAULT 'unbestimmt'
+                                CHECK (status IN ('unbestimmt', 'vorgeschlagen', 'uebernommen')),
+            member_id   INTEGER REFERENCES members(id) ON DELETE SET NULL,
+            category    TEXT    NOT NULL DEFAULT '',
+            note        TEXT    NOT NULL DEFAULT '',
+            assigned_by INTEGER REFERENCES users(id),
+            assigned_at TEXT,
+            created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_booked ON bank_transactions(booked_on DESC)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_status ON bank_transactions(status)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_member ON bank_transactions(member_id)');
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bank_transaction_files (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            transaction_id INTEGER NOT NULL REFERENCES bank_transactions(id) ON DELETE CASCADE,
+            filename       TEXT    NOT NULL,
+            stored_as      TEXT    NOT NULL,
+            mime           TEXT    NOT NULL DEFAULT '',
+            size           INTEGER NOT NULL DEFAULT 0,
+            created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id)');
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

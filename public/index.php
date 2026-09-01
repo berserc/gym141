@@ -222,6 +222,19 @@ $router->post('/admin/termine/{id}/todo-loeschen', [$termine, 'deleteTodo']);
 $router->post('/admin/termine/{id}/loeschen', [$termine, 'destroy']);
 $router->post('/admin/termine/{id}', [$termine, 'update']);
 
+// Bankimport: Kontoauszuege einspielen, Zahlungen zuordnen, Belege, Export
+$bank = new App\Controllers\BankController();
+
+$router->get('/admin/bank', [$bank, 'index']);
+$router->get('/admin/bank/import', [$bank, 'import']);
+$router->post('/admin/bank/import', [$bank, 'runImport']);
+$router->get('/admin/bank/export.xlsx', [$bank, 'exportXlsx']);
+$router->post('/admin/bank/vorschlaege-uebernehmen', [$bank, 'confirmSuggestions']);
+$router->post('/admin/bank/{id}/zuordnen', [$bank, 'assign']);
+$router->post('/admin/bank/{id}/beleg', [$bank, 'uploadFile']);
+$router->get('/admin/bank/beleg/{id}', [$bank, 'file']);
+$router->post('/admin/bank/beleg/{id}/loeschen', [$bank, 'deleteFile']);
+
 // Aufgaben (Task141 eingebaut): Checklisten, Anhaenge, Freigabe fuer Externe
 $aufgaben = new App\Controllers\TaskController();
 
