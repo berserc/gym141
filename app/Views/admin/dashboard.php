@@ -167,6 +167,32 @@ $limitMax   = \App\Core\License::memberLimit();
     </div>
 </div>
 
+<?php if (($memberChanges ?? []) !== []): ?>
+    <div class="card">
+        <div class="card__head">
+            <h2>Stammdaten-Änderungen</h2>
+            <span class="muted">letzte 14 Tage – auch aus der Mitglieder- und Admin-App</span>
+        </div>
+
+        <ul class="log-list">
+            <?php foreach ($memberChanges as $aenderung): ?>
+                <li>
+                    <time datetime="<?= e($aenderung['at']) ?>"><?= e(format_datetime((string) $aenderung['at'])) ?></time>
+                    <strong>
+                        <a href="<?= e(url('/admin/mitglieder/' . (int) $aenderung['entity_id'])) ?>">
+                            <?= e($aenderung['last_name'] . ' ' . $aenderung['first_name']) ?>
+                        </a>
+                    </strong>
+                    <span>geändert von <?= e($aenderung['username']) ?></span>
+                    <?php if ((string) $aenderung['detail'] !== ''): ?>
+                        <em><?= e(mb_strimwidth((string) $aenderung['detail'], 0, 90, '…')) ?></em>
+                    <?php endif; ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
 <?php if ($recent !== []): ?>
     <div class="card">
         <div class="card__head">

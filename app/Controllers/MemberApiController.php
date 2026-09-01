@@ -146,8 +146,22 @@ final class MemberApiController
         }
 
         if ($changes !== []) {
+            $vorher = array_intersect_key($member, $changes);
+
             $changes['updated_at'] = gmdate('Y-m-d H:i:s');
             Database::update('members', (int) $member['id'], $changes);
+            unset($changes['updated_at']);
+
+            // Fuer Admin und Verwaltung nachvollziehbar (Aenderungs-Feed).
+            \App\Core\Audit::logAs(
+                null,
+                trim((string) $member['first_name'] . ' ' . (string) $member['last_name']) . ' (Mitglieder-App)',
+                'member_updated',
+                'member',
+                (int) $member['id'],
+                \App\Core\Audit::diff($vorher, $changes)
+            );
+
             $member = array_merge($member, $changes);
         }
 

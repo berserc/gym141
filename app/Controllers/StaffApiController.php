@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Config;
 use App\Core\Database;
@@ -272,6 +273,202 @@ final class StaffApiController
         $this->json(['ok' => true, 'saved' => $saved, 'present' => count($present)]);
     }
 
+    // -------------------------------------------------- Mitglieder-Stammdaten --
+
+    /** Von der Admin-App aenderbare Stammdaten-Felder. */
+    private const MEMBER_EDITABLE = [
+        'first_name', 'last_name', 'street', 'zip', 'city', 'country', 'email', 'phone',
+    ];
+
+    /** Stammdaten eines Mitglieds (Trainer: nur lesen; Schreibrecht siehe can.members_write). */
+    public function member_get(array $args): void
+    {
+        [, $user] = $this->requireToken();
+
+        $member = $this->requireMember($user, (int) ($args['id'] ?? 0));
+
+        $this->json(['member' => $this->memberJson($member, $user)]);
+    }
+
+    /** Stammdaten aendern – nur Admin/Verwaltung/Sektionsleitung (im Sichtbereich). */
+    public function member_update(array $args): void
+    {
+        [, $user] = $this->requireToken();
+
+        if (array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'sektionsleiter']) === []) {
+            $this->json(['error' => 'Stammdaten ändern dürfen Admin, Verwaltung und Sektionsleitung.'], 403);
+        }
+
+        $member = $this->requireMember($user, (int) ($args['id'] ?? 0));
+        $body   = $this->body();
+
+        $changes = [];
+
+        foreach (self::MEMBER_EDITABLE as $field) {
+            if (!array_key_exists($field, $body)) {
+                continue;
+            }
+
+            $value = trim((string) $body[$field]);
+
+            if ($field === 'email' && $value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                $this->json(['error' => 'Ungültige E-Mail-Adresse.'], 422);
+            }
+
+            if (in_array($field, ['first_name', 'last_name'], true) && $value === '') {
+                $this->json(['error' => 'Vor- und Zuname dürfen nicht leer sein.'], 422);
+            }
+
+            $value = $field === 'country' ? (strtoupper(mb_substr($value, 0, 2)) ?: 'AT') : mb_substr($value, 0, 200);
+
+            if ($value !== (string) $member[$field]) {
+                $changes[$field] = $value;
+            }
+        }
+
+        if ($changes !== []) {
+            $vorher = array_intersect_key($member, $changes);
+
+            $changes['updated_at'] = gmdate('Y-m-d H:i:s');
+            Database::update('members', (int) $member['id'], $changes);
+            unset($changes['updated_at']);
+
+            // Aenderung fuer Admin und Verwaltung nachvollziehbar machen.
+            Audit::logAs(
+                (int) $user['id'],
+                (string) $user['username'] . ' (Admin-App)',
+                'member_updated',
+                'member',
+                (int) $member['id'],
+                Audit::diff($vorher, $changes)
+            );
+
+            $member = array_merge($member, $changes);
+        }
+
+        $this->json(['ok' => true, 'member' => $this->memberJson($member, $user)]);
+    }
+
+    /**
+     * Stammdaten-Aenderungen der letzten 30 Tage (Admin/Verwaltung alle,
+     * Sektionsleitung nur die eigenen Mitglieder) – aus dem Protokoll.
+     */
+    public function member_changes(): void
+    {
+        [, $user] = $this->requireToken();
+
+        if (array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'sektionsleiter']) === []) {
+            $this->json(['error' => 'Kein Zugriff auf das Änderungsprotokoll.'], 403);
+        }
+
+        $allowed = $this->allowedSectionIds($user);
+        $filter  = '';
+        $params  = [];
+
+        if ($allowed !== null) {
+            if ($allowed === []) {
+                $this->json(['changes' => []]);
+            }
+
+            $marks  = implode(',', array_fill(0, count($allowed), '?'));
+            $filter = " AND a.entity_id IN (SELECT member_id FROM member_sections WHERE section_id IN ($marks))";
+            $params = $allowed;
+        }
+
+        $rows = Database::all(
+            "SELECT a.created_at AS at, a.username, a.action, a.entity_id, a.detail,
+                    m.first_name, m.last_name, m.member_no
+               FROM audit_log a
+               JOIN members m ON m.id = a.entity_id
+              WHERE a.entity = 'member'
+                AND a.action IN ('member_updated', 'member_created')
+                AND a.created_at > datetime('now', '-30 days')
+                $filter
+              ORDER BY a.created_at DESC
+              LIMIT 100",
+            $params
+        );
+
+        $this->json(['changes' => array_map(static fn (array $r): array => [
+            'at'         => (string) $r['at'],
+            'by'         => (string) $r['username'],
+            'action'     => (string) $r['action'],
+            'member_id'  => (int) $r['entity_id'],
+            'member'     => (string) ($r['last_name'] . ' ' . $r['first_name']),
+            'member_no'  => (string) $r['member_no'],
+            'detail'     => (string) $r['detail'],
+        ], $rows)]);
+    }
+
+    /** Mitglied laden und Sichtbereich pruefen (404/403 sonst). @return array<string,mixed> */
+    private function requireMember(array $user, int $id): array
+    {
+        $member = Database::one(
+            'SELECT * FROM members WHERE id = ? AND deleted_at IS NULL',
+            [$id]
+        );
+
+        if ($member === null) {
+            $this->json(['error' => 'Mitglied nicht gefunden.'], 404);
+        }
+
+        $allowed = $this->allowedSectionIds($user);
+
+        if ($allowed !== null && !$this->memberInSections($id, $allowed)) {
+            $this->json(['error' => 'Kein Zugriff auf dieses Mitglied.'], 403);
+        }
+
+        return $member;
+    }
+
+    /** @param list<int> $sectionIds */
+    private function memberInSections(int $memberId, array $sectionIds): bool
+    {
+        if ($sectionIds === []) {
+            return false;
+        }
+
+        $marks = implode(',', array_fill(0, count($sectionIds), '?'));
+
+        return Database::one(
+            "SELECT 1 FROM member_sections WHERE member_id = ? AND section_id IN ($marks)
+              UNION SELECT 1 FROM members WHERE id = ? AND section_id IN ($marks)",
+            array_merge([$memberId], $sectionIds, [$memberId], $sectionIds)
+        ) !== null;
+    }
+
+    /** @return array<string,mixed> */
+    private function memberJson(array $member, array $user): array
+    {
+        return [
+            'id'         => (int) $member['id'],
+            'member_no'  => (string) $member['member_no'],
+            'first_name' => (string) $member['first_name'],
+            'last_name'  => (string) $member['last_name'],
+            'birthdate'  => $member['birthdate'],
+            'gender'     => (string) $member['gender'],
+            'street'     => (string) $member['street'],
+            'zip'        => (string) $member['zip'],
+            'city'       => (string) $member['city'],
+            'country'    => (string) $member['country'],
+            'email'      => (string) $member['email'],
+            'phone'      => (string) $member['phone'],
+            'status'     => (string) $member['status'],
+            'is_trainer' => (bool) $member['is_trainer'],
+            'joined_on'  => $member['joined_on'],
+            'updated_at' => (string) ($member['updated_at'] ?? ''),
+            'editable'   => array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'sektionsleiter']) !== []
+                ? self::MEMBER_EDITABLE
+                : [],
+            'sections'   => (string) (Database::value(
+                "SELECT GROUP_CONCAT(s.name, ', ')
+                   FROM member_sections ms JOIN sections s ON s.id = ms.section_id
+                  WHERE ms.member_id = ? AND ms.status = 'aktiv'",
+                [(int) $member['id']]
+            ) ?? ''),
+        ];
+    }
+
     // -------------------------------------------------------------- Beitraege --
 
     /** Offene, faellige Beitraege (nur Superuser/Kassier). */
@@ -280,7 +477,9 @@ final class StaffApiController
         [, $user] = $this->requireToken();
         $this->requireFeeRole($user);
 
-        $entries = FeeRepo::openEntries(['only_due' => 1], $this->allowedSectionIds($user));
+        // Finanz-Sichtbereich (nicht der allgemeine): ein Sektionskassier
+        // sieht nur die Beitraege der Mitglieder seiner Sektionen.
+        $entries = FeeRepo::openEntries(['only_due' => 1], $this->feeSectionIds($user));
 
         $this->json(['fees' => array_map(static fn (array $f): array => [
             'id'           => (int) $f['id'],
@@ -303,12 +502,19 @@ final class StaffApiController
         $entryId = (int) ($this->body()['entry_id'] ?? 0);
 
         $entry = Database::one(
-            'SELECT f.id, f.paid FROM fee_entries f WHERE f.id = ?',
+            'SELECT f.id, f.paid, f.member_id FROM fee_entries f WHERE f.id = ?',
             [$entryId]
         );
 
         if ($entry === null) {
             $this->json(['error' => 'Beitrag nicht gefunden.'], 404);
+        }
+
+        // Sektionskassier: nur Beitraege von Mitgliedern der eigenen Sektionen.
+        $feeSections = $this->feeSectionIds($user);
+
+        if ($feeSections !== null && !$this->memberInSections((int) $entry['member_id'], $feeSections)) {
+            $this->json(['error' => 'Kein Zugriff auf Beiträge dieses Mitglieds.'], 403);
         }
 
         if ((int) $entry['paid'] === 1) {
@@ -519,12 +725,37 @@ final class StaffApiController
         }
     }
 
-    /** Beitragsfunktionen nur fuer Superuser und Kassier. */
+    /** Beitragsfunktionen: vereinsweite Kassiere plus sektionsbezogene Finanzrollen. */
     private function requireFeeRole(array $user): void
     {
-        if (!in_array((string) $user['role'], ['superuser', 'kassier'], true)) {
-            $this->json(['error' => 'Beiträge sind Superuser und Kassier vorbehalten.'], 403);
+        if (array_intersect($this->rolesOf($user), ['superuser', 'kassier', 'sektionskassier', 'sektionsleiter']) === []) {
+            $this->json(['error' => 'Beiträge sind Kassieren und Sektionsleitungen vorbehalten.'], 403);
         }
+    }
+
+    /** @return list<string> alle Rollen des API-Benutzers (Mehrfach-Rollen). */
+    private function rolesOf(array $user): array
+    {
+        return Auth::rolesOf((int) $user['id'], (string) $user['role']);
+    }
+
+    /**
+     * Sichtbereich fuer FINANZEN: null = alle; Liste = nur diese Sektionen.
+     *
+     * @return list<int>|null
+     */
+    private function feeSectionIds(array $user): ?array
+    {
+        $roles = $this->rolesOf($user);
+
+        if (array_intersect($roles, ['superuser', 'kassier']) !== []) {
+            return null;
+        }
+
+        return array_map(
+            static fn (array $r): int => (int) $r['section_id'],
+            Database::all('SELECT section_id FROM user_sections WHERE user_id = ?', [(int) $user['id']])
+        );
     }
 
     /** @return array{0:int, 1:array<string,mixed>} */
@@ -556,10 +787,10 @@ final class StaffApiController
         return [$tokenId, $row];
     }
 
-    /** Sichtbare Sektionen: null = alle (Superuser/Kassier). @return list<int>|null */
+    /** Sichtbare Sektionen: null = alle (vereinsweite Rollen). @return list<int>|null */
     private function allowedSectionIds(array $user): ?array
     {
-        if (in_array((string) $user['role'], ['superuser', 'kassier'], true)) {
+        if (array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'kassier']) !== []) {
             return null;
         }
 
@@ -606,13 +837,27 @@ final class StaffApiController
                 $allowed
             ));
 
+        $roles = $this->rolesOf($user);
+
         return [
             'id'         => (int) $user['id'],
             'username'   => (string) $user['username'],
             'name'       => (string) ($user['name'] ?: $user['username']),
             'role'       => (string) $user['role'],
-            'role_label' => Auth::ROLES[(string) $user['role']] ?? (string) $user['role'],
+            'role_label' => implode(', ', array_map(
+                static fn (string $r): string => Auth::ROLES[$r] ?? $r,
+                $roles
+            )),
+            'roles'      => $roles,
             'sections'   => $sections, // null = alle Sektionen
+            // Was darf dieser Benutzer in der App? (Mehrfach-Rollen vereinigt)
+            'can'        => [
+                'members_read'   => true,
+                'members_write'  => array_intersect($roles, ['superuser', 'verwaltung', 'sektionsleiter']) !== [],
+                'fees'           => array_intersect($roles, ['superuser', 'kassier', 'sektionskassier', 'sektionsleiter']) !== [],
+                'member_changes' => array_intersect($roles, ['superuser', 'verwaltung', 'sektionsleiter']) !== [],
+                'attendance'     => true,
+            ],
         ];
     }
 

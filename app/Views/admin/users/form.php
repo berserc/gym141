@@ -97,26 +97,40 @@ $err = static function (string $field) use ($errors): string {
         </fieldset>
 
         <fieldset class="card">
-            <legend>Rolle und Zuständigkeit</legend>
+            <legend>Rollen und Zuständigkeit</legend>
 
+            <?php
+            // Vorbelegung: alte Eingabe (roles[]) > gespeicherte Rollen.
+            $aktiveRollen = array_map('strval', (array) ($user['roles'] ?? []));
+            ?>
             <div class="field">
-                <label for="role">Rolle *</label>
-                <select id="role" name="role" data-role-select>
+                <label>Rollen * <span class="muted">(mehrere möglich – z. B. Trainer UND Admin)</span></label>
+                <?= $err('roles') ?>
+
+                <div class="checkbox-grid">
                     <?php foreach (Auth::ROLES as $value => $label): ?>
-                        <option value="<?= e($value) ?>" <?= $user['role'] === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                        <label class="check">
+                            <input type="checkbox" name="roles[]" value="<?= e($value) ?>" data-role-box
+                                   data-scoped="<?= in_array($value, Auth::SECTION_SCOPED_ROLES, true) ? '1' : '0' ?>"
+                                <?= in_array($value, $aktiveRollen, true) ? 'checked' : '' ?>>
+                            <?= e($label) ?>
+                        </label>
                     <?php endforeach; ?>
-                </select>
-                <?= $err('role') ?>
+                </div>
             </div>
 
             <ul class="role-help">
-                <li><strong>Superuser</strong> – Vollzugriff, endgültiges Löschen, Benutzer- und Seitenverwaltung.</li>
-                <li><strong>Sektionsleitung</strong> – nur die zugeordneten Sektionen; Löschen nur als Vormerkung.</li>
-                <li><strong>Kassier</strong> – sieht alle Mitglieder, pflegt Beiträge und Auswertungen, ändert keine Stammdaten.</li>
+                <li><strong>Admin (Superuser)</strong> – Vollzugriff, endgültiges Löschen, Benutzer- und Seitenverwaltung.</li>
+                <li><strong>Verwaltung</strong> – sieht und ändert alle Mitglieder-Stammdaten; keine System- und Benutzerverwaltung.</li>
+                <li><strong>Kassier</strong> – alle Finanzen (Beiträge, Zahlungen, Buchhaltung, Auswertungen), vereinsweit.</li>
+                <li><strong>Sektionskassier</strong> – Finanzen NUR der Mitglieder seiner zugeordneten Sektion(en).</li>
+                <li><strong>Sektionsleitung</strong> – Mitglieder der zugeordneten Sektionen verwalten; Löschen nur als Vormerkung.</li>
+                <li><strong>Trainer</strong> – Mitglieder der zugeordneten Sektionen nur ansehen; Anwesenheit und Entwicklung erfassen.</li>
             </ul>
 
-            <div class="field" data-role-sections<?= $user['role'] === 'sektionsleiter' ? '' : ' hidden' ?>>
-                <label>Zugeordnete Sektionen</label>
+            <?php $brauchtSektionen = array_intersect($aktiveRollen, Auth::SECTION_SCOPED_ROLES) !== []; ?>
+            <div class="field" data-role-sections<?= $brauchtSektionen ? '' : ' hidden' ?>>
+                <label>Zugeordnete Sektionen <span class="muted">(gelten für alle sektionsbezogenen Rollen)</span></label>
                 <?= $err('section_ids') ?>
 
                 <div class="checkbox-grid">
@@ -129,6 +143,22 @@ $err = static function (string $field) use ($errors): string {
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <script>
+            // Sektionen nur zeigen, wenn eine sektionsbezogene Rolle gewaehlt ist.
+            document.addEventListener('DOMContentLoaded', function () {
+                var boxes = document.querySelectorAll('[data-role-box]');
+                var ziel  = document.querySelector('[data-role-sections]');
+                function aktualisiere() {
+                    var gebraucht = Array.prototype.some.call(boxes, function (b) {
+                        return b.checked && b.dataset.scoped === '1';
+                    });
+                    if (ziel) { ziel.hidden = !gebraucht; }
+                }
+                boxes.forEach(function (b) { b.addEventListener('change', aktualisiere); });
+                aktualisiere();
+            });
+            </script>
         </fieldset>
     </div>
 

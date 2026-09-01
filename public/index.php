@@ -286,6 +286,9 @@ $router->post('/api/app/verwaltung/beitraege/bezahlt', [$staffApi, 'fees_mark_pa
 $router->get('/api/app/verwaltung/aufgaben', [$staffApi, 'tasks_get']);
 $router->post('/api/app/verwaltung/aufgaben', [$staffApi, 'tasks_create']);
 $router->post('/api/app/verwaltung/aufgaben/{id}', [$staffApi, 'task_action']);
+$router->get('/api/app/verwaltung/mitglied/{id}', [$staffApi, 'member_get']);
+$router->post('/api/app/verwaltung/mitglied/{id}', [$staffApi, 'member_update']);
+$router->get('/api/app/verwaltung/aenderungen', [$staffApi, 'member_changes']);
 
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();

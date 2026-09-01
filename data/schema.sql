@@ -927,3 +927,16 @@ CREATE TABLE IF NOT EXISTS club_task_files (
 );
 
 CREATE INDEX IF NOT EXISTS idx_club_task_files ON club_task_files(task_id);
+
+-- Mehrfach-Rollen je Benutzer (seit 1.14.0). users.role bleibt als
+-- Hauptrolle fuer Anzeige/Altbestand; massgeblich ist die Vereinigung.
+-- Sektionsbezug (sektionsleiter, trainer, sektionskassier) kommt aus
+-- user_sections - dieselben Sektionen fuer alle sektionsbezogenen Rollen.
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role    TEXT    NOT NULL CHECK (role IN (
+        'superuser', 'verwaltung', 'kassier', 'sektionskassier',
+        'sektionsleiter', 'trainer'
+    )),
+    PRIMARY KEY (user_id, role)
+);

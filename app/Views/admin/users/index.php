@@ -43,9 +43,12 @@ use App\Core\Auth;
                             <span class="muted">–</span>
                         <?php endif; ?>
                     </td>
-                    <td><?= e(Auth::ROLES[$user['role']] ?? $user['role']) ?></td>
+                    <td><?= e(implode(', ', array_map(
+                        static fn (string $r): string => Auth::ROLES[$r] ?? $r,
+                        (array) ($user['roles'] ?? [(string) $user['role']])
+                    ))) ?></td>
                     <td>
-                        <?php if ($user['role'] === 'sektionsleiter'): ?>
+                        <?php if (array_intersect((array) ($user['roles'] ?? []), Auth::SECTION_SCOPED_ROLES) !== []): ?>
                             <?= e(implode(', ', array_column($user['sections'], 'name'))) ?: '<span class="muted">keine</span>' ?>
                         <?php else: ?>
                             <span class="muted">alle</span>

@@ -7,10 +7,17 @@ namespace App\Core;
 /**
  * Anmeldung, Rollen und Sektionsberechtigungen.
  *
+ * Ein Benutzer kann MEHRERE Rollen haben (user_roles); users.role bleibt als
+ * Hauptrolle fuer die Anzeige. Sektionsbezogene Rollen (sektionsleiter,
+ * trainer, sektionskassier) gelten fuer die Sektionen aus user_sections.
+ *
  * Rollen:
- *   superuser      – darf alles, inkl. endgueltigem Loeschen und Benutzerverwaltung
- *   sektionsleiter – nur die eigenen Sektionen; loeschen nur als Vormerkung
- *   kassier        – vereinsweit lesend, plus Beitraege/Zahlungen und Auswertungen
+ *   superuser       – Admin: darf alles, inkl. endgueltigem Loeschen und Benutzerverwaltung
+ *   verwaltung      – Mitglieder vereinsweit sehen und aendern; keine System-/Benutzerverwaltung
+ *   kassier         – alle Finanzen (Beitraege/Zahlungen/Auswertungen), vereinsweit lesend
+ *   sektionskassier – Finanzen NUR der Mitglieder seiner Sektionen
+ *   sektionsleiter  – Mitglieder seiner Sektionen verwalten; loeschen nur als Vormerkung
+ *   trainer         – Mitglieder seiner Sektionen NUR lesend; Anwesenheit/Entwicklung erfassen
  */
 final class Auth
 {
@@ -21,10 +28,16 @@ final class Auth
     private const DUMMY_HASH = '$2y$12$0000000000000000000000u1yWEyxYPZlSWDPjXmSSAsBnyBnZjJi';
 
     public const ROLES = [
-        'superuser'      => 'Superuser',
-        'sektionsleiter' => 'Sektionsleitung',
-        'kassier'        => 'Kassier',
+        'superuser'       => 'Admin (Superuser)',
+        'verwaltung'      => 'Verwaltung',
+        'kassier'         => 'Kassier',
+        'sektionskassier' => 'Sektionskassier',
+        'sektionsleiter'  => 'Sektionsleitung',
+        'trainer'         => 'Trainer',
     ];
+
+    /** Rollen, deren Sichtbereich auf die eigenen Sektionen beschraenkt ist. */
+    public const SECTION_SCOPED_ROLES = ['sektionsleiter', 'trainer', 'sektionskassier'];
 
     /** @var array<string,mixed>|null */
     private static ?array $user = null;
@@ -82,7 +95,33 @@ final class Auth
             )
         );
 
+        $user['roles'] = self::rolesOf($id, (string) $user['role']);
+
         return self::$user = $user;
+    }
+
+    /**
+     * Alle Rollen eines Benutzers: user_roles vereinigt mit der Hauptrolle
+     * (Altbestand ohne user_roles-Zeilen behaelt so seine Rechte).
+     *
+     * @return list<string>
+     */
+    public static function rolesOf(int $userId, string $legacyRole): array
+    {
+        try {
+            $rows = array_column(
+                Database::all('SELECT role FROM user_roles WHERE user_id = ?', [$userId]),
+                'role'
+            );
+        } catch (\PDOException) {
+            $rows = []; // Migration noch nicht gelaufen
+        }
+
+        if ($rows === [] && isset(self::ROLES[$legacyRole])) {
+            $rows = [$legacyRole];
+        }
+
+        return array_values(array_unique($rows));
     }
 
     public static function check(): bool
@@ -97,6 +136,7 @@ final class Auth
         return $user === null ? null : (int) $user['id'];
     }
 
+    /** Hauptrolle (Anzeige); Rechte kommen aus roles(). */
     public static function role(): ?string
     {
         $user = self::user();
@@ -104,11 +144,18 @@ final class Auth
         return $user === null ? null : (string) $user['role'];
     }
 
+    /** @return list<string> alle Rollen des angemeldeten Benutzers. */
+    public static function roles(): array
+    {
+        $user = self::user();
+
+        return $user === null ? [] : (array) $user['roles'];
+    }
+
+    /** Hat der Benutzer MINDESTENS EINE der genannten Rollen? */
     public static function is(string ...$roles): bool
     {
-        $role = self::role();
-
-        return $role !== null && in_array($role, $roles, true);
+        return array_intersect(self::roles(), $roles) !== [];
     }
 
     public static function isSuperuser(): bool
@@ -119,18 +166,18 @@ final class Auth
     /** Darf Stammdaten (Mitglieder, Sektionen) veraendern? */
     public static function canWrite(): bool
     {
-        return self::is('superuser', 'sektionsleiter');
+        return self::is('superuser', 'verwaltung', 'sektionsleiter');
     }
 
     /** Darf Beitraege/Zahlungen erfassen? */
     public static function canManageFees(): bool
     {
-        return self::is('superuser', 'kassier', 'sektionsleiter');
+        return self::is('superuser', 'kassier', 'sektionsleiter', 'sektionskassier');
     }
 
     /**
      * IDs der Sektionen, auf die der angemeldete Benutzer zugreifen darf.
-     * null bedeutet "alle" (Superuser und Kassier).
+     * null bedeutet "alle" (vereinsweite Rollen: Superuser, Verwaltung, Kassier).
      *
      * @return list<int>|null
      */
@@ -142,12 +189,33 @@ final class Auth
             return [];
         }
 
-        if (in_array($user['role'], ['superuser', 'kassier'], true)) {
+        if (self::is('superuser', 'verwaltung', 'kassier')) {
             return null;
         }
 
         /** @var list<int> */
         return $user['section_ids'];
+    }
+
+    /**
+     * Sichtbereich fuer FINANZEN: null = alle (Superuser/Kassier), sonst die
+     * Sektionen der finanzberechtigten sektionsbezogenen Rollen; [] = keine.
+     *
+     * @return list<int>|null
+     */
+    public static function feeSectionIds(): ?array
+    {
+        if (self::is('superuser', 'kassier')) {
+            return null;
+        }
+
+        if (self::is('sektionskassier', 'sektionsleiter')) {
+            $user = self::user();
+
+            return $user === null ? [] : (array) $user['section_ids'];
+        }
+
+        return [];
     }
 
     // ------------------------------------------------------ Verwaltungsmodus --
@@ -175,11 +243,27 @@ final class Auth
             return [];
         }
 
-        $modes = match ((string) $user['role']) {
-            'superuser' => ['admin', 'kassier', 'trainer'],
-            'kassier'   => ['kassier'],
-            default     => ['trainer'],
-        };
+        $modes = [];
+
+        if (self::is('superuser')) {
+            $modes = ['admin', 'kassier', 'trainer'];
+        } else {
+            if (self::is('verwaltung')) {
+                $modes[] = 'admin';
+            }
+
+            if (self::is('kassier', 'sektionskassier')) {
+                $modes[] = 'kassier';
+            }
+
+            if (self::is('sektionsleiter', 'trainer')) {
+                $modes[] = 'trainer';
+            }
+        }
+
+        if ($modes === []) {
+            $modes = ['trainer'];
+        }
 
         if ((int) ($user['member_id'] ?? 0) > 0) {
             $modes[] = 'mitglied';

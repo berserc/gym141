@@ -43,7 +43,7 @@ final class GroupController
 
     public function store(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $name = post('name');
@@ -89,7 +89,7 @@ final class GroupController
     /** @param array<string,string> $args */
     public function addMember(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id  = (int) ($args['id'] ?? 0);
@@ -116,7 +116,7 @@ final class GroupController
     /** @param array<string,string> $args */
     public function removeMember(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         Database::run(

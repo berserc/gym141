@@ -27,6 +27,7 @@ final class UserRepo
                   ORDER BY s.name COLLATE NOCASE',
                 [(int) $user['id']]
             );
+            $users[$i]['roles'] = \App\Core\Auth::rolesOf((int) $user['id'], (string) $user['role']);
         }
 
         return $users;
@@ -55,7 +56,26 @@ final class UserRepo
             )
         );
 
+        $user['roles'] = \App\Core\Auth::rolesOf($id, (string) $user['role']);
+
         return $user;
+    }
+
+    /**
+     * Rollen eines Benutzers komplett neu setzen (Mehrfach-Rollen).
+     *
+     * @param list<string> $roles
+     */
+    public static function setRoles(int $userId, array $roles): void
+    {
+        Database::run('DELETE FROM user_roles WHERE user_id = ?', [$userId]);
+
+        foreach (array_unique($roles) as $role) {
+            Database::run(
+                'INSERT OR IGNORE INTO user_roles (user_id, role) VALUES (?, ?)',
+                [$userId, (string) $role]
+            );
+        }
     }
 
     public static function usernameTaken(string $username, ?int $ignoreId = null): bool
@@ -83,8 +103,12 @@ final class UserRepo
     public static function activeSuperuserCount(?int $excludingId = null): int
     {
         return (int) Database::value(
-            "SELECT COUNT(*) FROM users
-              WHERE role = 'superuser' AND active = 1 AND (? IS NULL OR id <> ?)",
+            "SELECT COUNT(*) FROM users u
+              WHERE u.active = 1 AND (? IS NULL OR u.id <> ?)
+                AND (EXISTS (SELECT 1 FROM user_roles r
+                              WHERE r.user_id = u.id AND r.role = 'superuser')
+                     OR (u.role = 'superuser'
+                         AND NOT EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id)))",
             [$excludingId, $excludingId]
         );
     }

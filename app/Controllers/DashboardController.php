@@ -143,7 +143,49 @@ final class DashboardController
             'recent'       => Auth::isSuperuser()
                 ? Database::all('SELECT * FROM audit_log ORDER BY id DESC LIMIT 12')
                 : [],
+            // Stammdaten-Aenderungen (auch aus den Apps) fuer Admin,
+            // Verwaltung und Sektionsleitung - im jeweiligen Sichtbereich.
+            'memberChanges' => $this->memberChanges($allowed),
         ], 'layouts/admin');
+    }
+
+    /**
+     * Stammdaten-Aenderungen der letzten 14 Tage im Sichtbereich.
+     *
+     * @param list<int>|null $allowed
+     * @return list<array<string,mixed>>
+     */
+    private function memberChanges(?array $allowed): array
+    {
+        if (!Auth::is('superuser', 'verwaltung', 'sektionsleiter')) {
+            return [];
+        }
+
+        $filter = '';
+        $params = [];
+
+        if ($allowed !== null) {
+            if ($allowed === []) {
+                return [];
+            }
+
+            $marks  = implode(',', array_fill(0, count($allowed), '?'));
+            $filter = " AND a.entity_id IN (SELECT member_id FROM member_sections WHERE section_id IN ($marks))";
+            $params = $allowed;
+        }
+
+        return Database::all(
+            "SELECT a.created_at AS at, a.username, a.entity_id, a.detail,
+                    m.first_name, m.last_name, m.member_no
+               FROM audit_log a
+               JOIN members m ON m.id = a.entity_id
+              WHERE a.entity = 'member' AND a.action = 'member_updated'
+                AND a.created_at > datetime('now', '-14 days')
+                $filter
+              ORDER BY a.created_at DESC
+              LIMIT 15",
+            $params
+        );
     }
 
     /**

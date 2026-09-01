@@ -96,7 +96,7 @@ final class MemberController
 
     public function create(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
 
         $sections = SectionRepo::forUser(Auth::allowedSectionIds());
 
@@ -169,7 +169,7 @@ final class MemberController
 
     public function store(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         [$data, $errors] = $this->validate(true);
@@ -244,7 +244,7 @@ final class MemberController
      */
     public function scanForm(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $apiKey = Setting::get('anthropic_api_key');
@@ -458,7 +458,7 @@ final class MemberController
     /** @param array<string,string> $args */
     public function update(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id     = (int) ($args['id'] ?? 0);
@@ -634,7 +634,7 @@ final class MemberController
     /** Legt eine Sektionsmitgliedschaft an oder aendert Beitrag und Status. */
     public function saveMembership(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -679,7 +679,7 @@ final class MemberController
 
     public function deleteMembership(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id        = (int) ($args['id'] ?? 0);
@@ -707,7 +707,7 @@ final class MemberController
     /** Sektionsleitung markiert zum Loeschen; Superuser loescht direkt. */
     public function requestDelete(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id     = (int) ($args['id'] ?? 0);
@@ -733,7 +733,7 @@ final class MemberController
 
     public function cancelDelete(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -760,7 +760,7 @@ final class MemberController
      */
     public function archive(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id     = (int) ($args['id'] ?? 0);
@@ -787,7 +787,7 @@ final class MemberController
     /** Archivierung aufheben (Wiedereintritt geht dann ueber Status "aktiv"). */
     public function unarchive(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id     = (int) ($args['id'] ?? 0);
@@ -940,7 +940,7 @@ final class MemberController
 
     public function deleteFee(array $args): void
     {
-        AuthController::requireRole('superuser', 'kassier');
+        AuthController::requireRole('superuser', 'kassier', 'sektionskassier');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -972,7 +972,7 @@ final class MemberController
      */
     public function saveGuardian(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1018,7 +1018,7 @@ final class MemberController
 
     public function deleteGuardian(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1109,7 +1109,7 @@ final class MemberController
     /** Erinnerung anlegen (aerztliche Untersuchung, Kampfpassverlaengerung ...). */
     public function saveReminder(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1137,7 +1137,7 @@ final class MemberController
     /** Erinnerung als erledigt markieren bzw. wieder oeffnen. */
     public function toggleReminder(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1153,7 +1153,7 @@ final class MemberController
 
     public function deleteReminder(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1313,7 +1313,7 @@ final class MemberController
     /** Datei oder Profilbild hochladen. */
     public function uploadFile(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -1422,7 +1422,7 @@ final class MemberController
     /** Tag/Beschreibung einer Datei aendern. */
     public function updateFile(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id   = (int) ($args['id'] ?? 0);
@@ -1440,7 +1440,7 @@ final class MemberController
 
     public function deleteFile(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id   = (int) ($args['id'] ?? 0);
@@ -1799,7 +1799,7 @@ final class MemberController
         switch ($action) {
             case 'aktiv':
             case 'inaktiv':
-                AuthController::requireRole('superuser', 'sektionsleiter');
+                AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
                 Database::run(
                     "UPDATE members SET status = ?, updated_at = ? WHERE id IN ($in)",
                     array_merge([$action, $now], $allowed)
@@ -1808,7 +1808,7 @@ final class MemberController
                 break;
 
             case 'delete_request':
-                AuthController::requireRole('superuser', 'sektionsleiter');
+                AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
                 Database::run(
                     "UPDATE members
                         SET delete_requested = 1, delete_requested_by = ?, delete_requested_at = ?,
@@ -1886,7 +1886,7 @@ final class MemberController
                 break;
 
             case 'archive':
-                AuthController::requireRole('superuser', 'sektionsleiter');
+                AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
                 // Wie beim Einzel-Archivieren: Historie bleibt vollstaendig
                 // erhalten, Austritt wird gesetzt, falls noch keiner erfasst ist.
                 Database::run(

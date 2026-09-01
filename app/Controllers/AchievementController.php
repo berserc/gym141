@@ -63,7 +63,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function saveFight(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id      = (int) ($args['id'] ?? 0);
@@ -107,7 +107,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function deleteFight(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -125,7 +125,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function saveMeet(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id     = (int) ($args['id'] ?? 0);
@@ -177,7 +177,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function deleteMeet(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -195,7 +195,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function saveAward(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id      = (int) ($args['id'] ?? 0);
@@ -234,7 +234,7 @@ final class AchievementController
     /** @param array<string,string> $args */
     public function deleteAward(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -291,7 +291,7 @@ final class AchievementController
     /** Link ODER Datei zu einem Kampf/KDK-Wettkampf/einer Auszeichnung. */
     public function saveMedia(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -422,7 +422,7 @@ final class AchievementController
 
     public function deleteMedia(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);

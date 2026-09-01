@@ -11,9 +11,22 @@ final class Audit
     {
         $user = Auth::user();
 
+        self::logAs(
+            isset($user['id']) ? (int) $user['id'] : null,
+            (string) ($user['username'] ?? 'system'),
+            $action,
+            $entity,
+            $entityId,
+            $detail
+        );
+    }
+
+    /** Wie log(), aber mit explizitem Verursacher (API-Kontexte ohne Session). */
+    public static function logAs(?int $userId, string $username, string $action, string $entity = '', ?int $entityId = null, string $detail = ''): void
+    {
         Database::insert('audit_log', [
-            'user_id'   => $user['id'] ?? null,
-            'username'  => (string) ($user['username'] ?? 'system'),
+            'user_id'   => $userId,
+            'username'  => $username,
             'action'    => $action,
             'entity'    => $entity,
             'entity_id' => $entityId,

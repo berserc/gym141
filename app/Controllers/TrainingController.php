@@ -124,7 +124,7 @@ final class TrainingController
 
     public function storeTest(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $name = post('name');
@@ -148,7 +148,7 @@ final class TrainingController
     /** @param array<string,string> $args */
     public function updateTest(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id   = (int) ($args['id'] ?? 0);
@@ -204,7 +204,7 @@ final class TrainingController
     /** Testergebnis eines Mitglieds erfassen. */
     public function saveResult(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -248,7 +248,7 @@ final class TrainingController
     /** @param array<string,string> $args */
     public function deleteResult(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -322,7 +322,7 @@ final class TrainingController
     /** @param array<string,string> $args */
     public function saveWeight(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -354,7 +354,7 @@ final class TrainingController
     /** @param array<string,string> $args */
     public function deleteWeight(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -374,7 +374,7 @@ final class TrainingController
     /** Einzelnen Trainingsbesuch erfassen bzw. Bewertung aktualisieren. */
     public function saveAttendance(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -398,7 +398,7 @@ final class TrainingController
     /** @param array<string,string> $args */
     public function deleteAttendance(array $args): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = (int) ($args['id'] ?? 0);
@@ -454,7 +454,7 @@ final class TrainingController
 
     public function storeQuickAttendance(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $datum = parse_date(post('datum'));

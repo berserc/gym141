@@ -199,6 +199,22 @@ final class Installer
             'task141_url' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
+        // Seit 1.14.0: Mehrfach-Rollen je Benutzer (verwaltung, sektionskassier,
+        // trainer als eigene Rollen). users.role bleibt als Hauptrolle bestehen;
+        // bestehende Benutzer bekommen ihre bisherige Rolle als Startbestand.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS user_roles (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            role    TEXT    NOT NULL CHECK (role IN (
+                'superuser', 'verwaltung', 'kassier', 'sektionskassier',
+                'sektionsleiter', 'trainer'
+            )),
+            PRIMARY KEY (user_id, role)
+        )");
+        $pdo->exec("INSERT OR IGNORE INTO user_roles (user_id, role)
+                    SELECT id, role FROM users
+                     WHERE role IN ('superuser', 'kassier', 'sektionsleiter')
+                       AND id NOT IN (SELECT user_id FROM user_roles)");
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

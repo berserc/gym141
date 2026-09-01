@@ -18,7 +18,7 @@ final class ScheduleAdminController
 {
     public function index(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
 
         View::display('admin/schedule/index', [
             'title'    => 'Wochenplan',
@@ -30,7 +30,7 @@ final class ScheduleAdminController
 
     public function save(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id = post_int('slot_id');
@@ -71,7 +71,7 @@ final class ScheduleAdminController
 
     public function delete(): void
     {
-        AuthController::requireRole('superuser', 'sektionsleiter');
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
         $id   = post_int('slot_id');

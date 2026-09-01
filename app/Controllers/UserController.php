@@ -50,7 +50,7 @@ final class UserController
             'title'    => 'Neuer Benutzer',
             'user'     => Flash::oldInput() + [
                 'id' => 0, 'username' => '', 'name' => '', 'email' => '',
-                'role' => 'sektionsleiter', 'active' => 1, 'section_ids' => [],
+                'role' => 'sektionsleiter', 'roles' => [], 'active' => 1, 'section_ids' => [],
                 'member_id' => null, 'member_first_name' => null, 'member_last_name' => null,
             ],
             'sections'   => SectionRepo::all(),
@@ -96,13 +96,17 @@ final class UserController
 
         $generated = $password === '' ? UserRepo::generatePassword() : $password;
 
+        $roles = (array) $data['roles'];
+        unset($data['roles']);
+
         $data['password_hash']        = password_hash($generated, PASSWORD_DEFAULT);
         $data['must_change_password'] = 1;
 
         $id = Database::insert('users', $data);
         UserRepo::setSections($id, $sectionIds);
+        UserRepo::setRoles($id, $roles);
 
-        Audit::log('user_created', 'user', $id, (string) $data['username'] . ' (' . $data['role'] . ')');
+        Audit::log('user_created', 'user', $id, (string) $data['username'] . ' (' . implode(', ', $roles) . ')');
         Flash::success(sprintf(
             'Benutzer "%s" angelegt. Startpasswort: %s – bitte sicher weitergeben, es wird nicht erneut angezeigt.',
             $data['username'],
@@ -127,12 +131,15 @@ final class UserController
 
         [$data, $sectionIds, $password, $errors] = $this->validate($id);
 
+        $roles = (array) $data['roles'];
+        unset($data['roles']);
+
         // Den letzten aktiven Superuser nicht aussperren.
-        $losesSuperuser = (string) $existing['role'] === 'superuser'
-            && ($data['role'] !== 'superuser' || (int) $data['active'] !== 1);
+        $losesSuperuser = in_array('superuser', (array) $existing['roles'], true)
+            && (!in_array('superuser', $roles, true) || (int) $data['active'] !== 1);
 
         if ($losesSuperuser && UserRepo::activeSuperuserCount($id) === 0) {
-            $errors['role'] = 'Das ist der letzte aktive Superuser – Rolle und Status können nicht geändert werden.';
+            $errors['roles'] = 'Das ist der letzte aktive Superuser – Rolle und Status können nicht geändert werden.';
         }
 
         if ($errors !== []) {
@@ -149,6 +156,7 @@ final class UserController
 
         Database::update('users', $id, $data);
         UserRepo::setSections($id, $sectionIds);
+        UserRepo::setRoles($id, $roles);
 
         Audit::log('user_updated', 'user', $id, Audit::diff($existing, $data));
         Flash::success(
@@ -203,7 +211,7 @@ final class UserController
             Url::redirect('/admin/benutzer/' . $id);
         }
 
-        if ((string) $user['role'] === 'superuser' && UserRepo::activeSuperuserCount($id) === 0) {
+        if (in_array('superuser', (array) ($user['roles'] ?? []), true) && UserRepo::activeSuperuserCount($id) === 0) {
             Flash::error('Der letzte aktive Superuser kann nicht gelöscht werden.');
             Url::redirect('/admin/benutzer/' . $id);
         }
@@ -222,7 +230,6 @@ final class UserController
     {
         $errors   = [];
         $username = post('username');
-        $role     = post('role', 'sektionsleiter');
 
         if ($username === '') {
             $errors['username'] = 'Benutzername ist erforderlich.';
@@ -233,9 +240,23 @@ final class UserController
             $errors['username'] = 'Dieser Benutzername ist bereits vergeben.';
         }
 
-        if (!array_key_exists($role, Auth::ROLES)) {
-            $role = 'sektionsleiter';
+        // Mehrfach-Rollen (Checkboxen). Ein Benutzer kann z. B. Trainer UND
+        // Admin sein, oder Sektionskassier mehrerer Sektionen.
+        /** @var list<string> $roles */
+        $roles = array_values(array_intersect(
+            array_map('strval', (array) ($_POST['roles'] ?? [])),
+            array_keys(Auth::ROLES)
+        ));
+
+        if ($roles === []) {
+            $errors['roles'] = 'Bitte mindestens eine Rolle auswählen.';
+            $roles = ['sektionsleiter'];
         }
+
+        // users.role bleibt als Hauptrolle (Altbestand/Anzeige): die
+        // ranghoechste legacy-kompatible Rolle.
+        $role = in_array('superuser', $roles, true) ? 'superuser'
+            : (in_array('kassier', $roles, true) ? 'kassier' : 'sektionsleiter');
 
         $email = post('email');
 
@@ -252,12 +273,14 @@ final class UserController
         /** @var list<int> $sectionIds */
         $sectionIds = array_values(array_filter(array_map('intval', (array) ($_POST['section_ids'] ?? []))));
 
-        if ($role === 'sektionsleiter' && $sectionIds === []) {
-            $errors['section_ids'] = 'Einer Sektionsleitung muss mindestens eine Sektion zugeordnet sein.';
+        $sektionsbezogen = array_intersect($roles, Auth::SECTION_SCOPED_ROLES) !== [];
+
+        if ($sektionsbezogen && $sectionIds === []) {
+            $errors['section_ids'] = 'Sektionsbezogene Rollen (Sektionsleitung, Trainer, Sektionskassier) brauchen mindestens eine Sektion.';
         }
 
-        // Superuser und Kassier sehen ohnehin alles – Zuordnungen entfallen.
-        if ($role !== 'sektionsleiter') {
+        // Ohne sektionsbezogene Rolle entfallen die Zuordnungen.
+        if (!$sektionsbezogen) {
             $sectionIds = [];
         }
 
@@ -285,6 +308,7 @@ final class UserController
             'role'      => $role,
             'active'    => post_bool('active'),
             'member_id' => $memberId,
+            'roles'     => $roles, // wird vor dem DB-Schreiben wieder entnommen
         ];
 
         return [$data, $sectionIds, $password, $errors];
