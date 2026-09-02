@@ -995,3 +995,17 @@ CREATE TABLE IF NOT EXISTS bank_transaction_files (
 );
 
 CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id);
+
+-- App-Einladungen: einmaliger Kurzzeit-Token (10 Minuten), mit dem sich die
+-- Mitglieder-App ohne Zugangsdaten mit dem Verein verbindet (Link/QR-Code).
+CREATE TABLE IF NOT EXISTS member_invites (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    token_hash TEXT    NOT NULL UNIQUE,           -- SHA-256, Klartext nur einmal sichtbar
+    created_by INTEGER REFERENCES users(id),
+    expires_at TEXT    NOT NULL,                  -- UTC
+    used_at    TEXT,                              -- gesetzt = eingeloest (einmalig)
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_invites_member ON member_invites(member_id);

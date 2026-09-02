@@ -201,6 +201,26 @@ final class MemberAreaController
         ], 'layouts/member');
     }
 
+    /** Oeffentliche App-Einladungsseite (Anleitung + Code; loest NICHT ein). */
+    public function appInvite(array $args): void
+    {
+        $token   = (string) ($args['token'] ?? '');
+        $gueltig = preg_match('/^[a-f0-9]{40}$/', $token) === 1
+            && Database::one(
+                "SELECT id FROM member_invites
+                  WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now')",
+                [hash('sha256', $token)]
+            ) !== null;
+
+        View::display('public/app-invite', [
+            'title'   => 'Einladung zur Gym141-App',
+            'noindex' => true,
+            'gueltig' => $gueltig,
+            'token'   => $token,
+            'appUri'  => $gueltig ? \App\Models\InviteRepo::uriFor($token) : '',
+        ], 'layouts/public');
+    }
+
     /** Mitglied traegt sein eigenes Gewicht ein. */
     public function saveWeight(): void
     {

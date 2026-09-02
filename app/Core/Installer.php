@@ -258,6 +258,18 @@ final class Installer
         )");
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id)');
 
+        // Seit 1.17.0: App-Einladungen (Kurzzeit-Token fuer Link/QR-Beitritt).
+        $pdo->exec("CREATE TABLE IF NOT EXISTS member_invites (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id  INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+            token_hash TEXT    NOT NULL UNIQUE,
+            created_by INTEGER REFERENCES users(id),
+            expires_at TEXT    NOT NULL,
+            used_at    TEXT,
+            created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_invites_member ON member_invites(member_id)');
+
         // Seit 1.16.0: Kopplung Bankzahlung -> beglichene Beitragsperioden.
         $this->addColumns($pdo, 'bank_transactions', [
             'settled_info' => "TEXT NOT NULL DEFAULT ''",

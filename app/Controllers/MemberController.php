@@ -162,6 +162,13 @@ final class MemberController
             'isNew'     => false,
             // Kassier sieht alles, darf aber keine Stammdaten aendern.
             'canEdit'   => Auth::canWrite(),
+            // Frisch erzeugter App-Einladungs-Token (nur einmal sichtbar).
+            'appInviteToken' => (static function () use ($id): string {
+                $token = (string) ($_SESSION['app_invite_' . $id] ?? '');
+                unset($_SESSION['app_invite_' . $id]);
+
+                return $token;
+            })(),
         ], 'layouts/admin');
     }
 
@@ -1239,6 +1246,28 @@ final class MemberController
      * Login-Zugang eines Mitglieds verwalten: Haken setzen/entziehen und
      * Passwort erzeugen bzw. zuruecksetzen (nur Admins).
      */
+    /** App-Einladung (Link/QR, 10 Minuten, einmalig) fuer die Gym141-App. */
+    public function createAppInvite(array $args): void
+    {
+        AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
+        Csrf::verify();
+
+        $id     = (int) ($args['id'] ?? 0);
+        $member = $this->findAccessible($id);
+
+        [$token] = \App\Models\InviteRepo::create($id, Auth::id());
+
+        // Klartext-Token einmalig fuer die naechste Seitenanzeige merken.
+        $_SESSION['app_invite_' . $id] = $token;
+
+        Audit::log('member_invite', 'member', $id, 'App-Einladung erzeugt (gültig 10 Minuten)');
+        Flash::success(sprintf(
+            'App-Einladung für %s erzeugt – Link unten kopieren und ans Mitglied schicken (10 Minuten gültig, einmalig).',
+            $member['first_name'] . ' ' . $member['last_name']
+        ));
+        Url::redirect('/admin/mitglieder/' . $id . '#login-zugang');
+    }
+
     public function updateLogin(array $args): void
     {
         AuthController::requireRole('superuser');

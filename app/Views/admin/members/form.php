@@ -1002,7 +1002,28 @@ $disabled = $canEdit ? '' : ' disabled';
                         <button class="btn btn--ghost" type="submit">Zugang entziehen</button>
                     </form>
                 <?php endif; ?>
+
+                <form method="post" action="<?= e(url('/admin/mitglieder/' . $id . '/app-einladung')) ?>" class="inline">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit"
+                            title="Einmaliger Link/Code, 10 Minuten gültig – das Mitglied verbindet seine Gym141-App ohne Zugangsdaten">
+                        App-Einladung erzeugen
+                    </button>
+                </form>
             </div>
+
+            <?php $einladung = \App\Models\InviteRepo::openFor($id); ?>
+            <?php if ($einladung !== null && ($appInviteToken ?? '') !== ''): ?>
+                <div class="field" style="margin-top:.7rem">
+                    <label>Einladungslink (gültig bis <?= e(gmdate('H:i', strtotime((string) $einladung['expires_at']))) ?> UTC, einmalig)</label>
+                    <input readonly value="<?= e(\App\Models\InviteRepo::urlFor((string) $appInviteToken)) ?>"
+                           onclick="this.select();document.execCommand('copy')" title="Klick kopiert den Link">
+                    <p class="field__hint">
+                        Link ans Mitglied schicken (WhatsApp/E-Mail) – oder in der Admin-App als
+                        QR-Code erzeugen und direkt abfotografieren lassen.
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 

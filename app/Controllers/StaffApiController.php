@@ -400,6 +400,41 @@ final class StaffApiController
         ], $rows)]);
     }
 
+    /**
+     * App-Einladung fuer ein Mitglied erzeugen (Link + QR-Inhalt, 10 Minuten
+     * gueltig, einmalig). Admin/Verwaltung/Sektionsleitung im Sichtbereich.
+     */
+    public function member_invite(array $args): void
+    {
+        [, $user] = $this->requireToken();
+
+        if (array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'sektionsleiter']) === []) {
+            $this->json(['error' => 'App-Einladungen dürfen Admin, Verwaltung und Sektionsleitung erzeugen.'], 403);
+        }
+
+        $member = $this->requireMember($user, (int) ($args['id'] ?? 0));
+
+        [$token, $expires] = \App\Models\InviteRepo::create((int) $member['id'], (int) $user['id']);
+
+        Audit::logAs(
+            (int) $user['id'],
+            (string) $user['username'] . ' (Admin-App)',
+            'member_invite',
+            'member',
+            (int) $member['id'],
+            'App-Einladung erzeugt (gültig 10 Minuten)'
+        );
+
+        $this->json([
+            'ok'          => true,
+            'url'         => \App\Models\InviteRepo::urlFor($token),
+            'uri'         => \App\Models\InviteRepo::uriFor($token),
+            'invite'      => $token,
+            'expires_at'  => $expires,
+            'member_name' => trim($member['first_name'] . ' ' . $member['last_name']),
+        ]);
+    }
+
     /** Mitglied laden und Sichtbereich pruefen (404/403 sonst). @return array<string,mixed> */
     private function requireMember(array $user, int $id): array
     {

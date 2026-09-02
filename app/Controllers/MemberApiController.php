@@ -87,6 +87,48 @@ final class MemberApiController
         $this->json(['ok' => true]);
     }
 
+    /**
+     * App-Einladung einloesen: einmaliger Kurzzeit-Token (Link/QR) statt
+     * Zugangsdaten. Antwort wie login() - die App ist sofort verbunden.
+     */
+    public function invite_redeem(): void
+    {
+        $ip = client_ip();
+
+        if (Auth::isThrottled($ip)) {
+            $this->json(['error' => 'Zu viele Fehlversuche – bitte in 15 Minuten erneut versuchen.'], 429);
+        }
+
+        $body   = $this->body();
+        $member = \App\Models\InviteRepo::redeem(trim((string) ($body['token'] ?? '')));
+
+        if ($member === null) {
+            Auth::recordFailedAttempt($ip, 'app-einladung');
+            $this->json(['error' => 'Die Einladung ist ungültig, abgelaufen oder wurde schon verwendet – bitte eine neue anfordern.'], 401);
+        }
+
+        Auth::clearAttempts($ip);
+
+        $token = bin2hex(random_bytes(32));
+
+        Database::insert('member_api_tokens', [
+            'member_id'   => (int) $member['id'],
+            'token_hash'  => hash('sha256', $token),
+            'device_name' => mb_substr(trim((string) ($body['device'] ?? '')), 0, 120),
+        ]);
+
+        Database::update('members', (int) $member['id'], [
+            'login_last_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
+        $this->json([
+            'token'  => $token,
+            'club'   => $this->club(),
+            'member' => $this->profile($member),
+            'fee'    => $this->fee($member),
+        ]);
+    }
+
     // --------------------------------------------------------------- Profil --
 
     public function profile_get(): void

@@ -169,6 +169,7 @@ $router->post('/admin/mitglieder/{id}/erinnerung-loeschen', [$members, 'deleteRe
 $router->post('/admin/mitglieder/{id}/beitragsaenderung', [$members, 'saveAmountChange']);
 $router->post('/admin/mitglieder/{id}/beitragsaenderung-loeschen', [$members, 'deleteAmountChange']);
 $router->post('/admin/mitglieder/{id}/login-zugang', [$members, 'updateLogin']);
+$router->post('/admin/mitglieder/{id}/app-einladung', [$members, 'createAppInvite']);
 $router->post('/admin/mitglieder/{id}/archivieren', [$members, 'archive']);
 $router->post('/admin/mitglieder/{id}/reaktivieren', [$members, 'unarchive']);
 
@@ -263,6 +264,7 @@ if ($memberArea) {
     $app = new App\Controllers\MemberApiController();
 
     $router->post('/api/app/login', [$app, 'login']);
+    $router->post('/api/app/einladung', [$app, 'invite_redeem']);
     $router->post('/api/app/logout', [$app, 'logout']);
     $router->get('/api/app/profil', [$app, 'profile_get']);
     $router->post('/api/app/profil', [$app, 'profile_update']);
@@ -272,6 +274,7 @@ if ($memberArea) {
 
     $mitglied = new App\Controllers\MemberAreaController();
 
+    $router->get('/app-einladung/{token}', [$mitglied, 'appInvite']);
     $router->get('/mitglied/login', [$mitglied, 'showLogin']);
     $router->post('/mitglied/login', [$mitglied, 'login']);
     $router->post('/mitglied/logout', [$mitglied, 'logout']);
@@ -301,6 +304,7 @@ $router->post('/api/app/verwaltung/aufgaben', [$staffApi, 'tasks_create']);
 $router->post('/api/app/verwaltung/aufgaben/{id}', [$staffApi, 'task_action']);
 $router->get('/api/app/verwaltung/mitglied/{id}', [$staffApi, 'member_get']);
 $router->post('/api/app/verwaltung/mitglied/{id}', [$staffApi, 'member_update']);
+$router->post('/api/app/verwaltung/mitglied/{id}/einladung', [$staffApi, 'member_invite']);
 $router->get('/api/app/verwaltung/aenderungen', [$staffApi, 'member_changes']);
 
 // Erfolge und Wettkaempfe
