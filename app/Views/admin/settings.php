@@ -326,22 +326,22 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
             </div>
 
             <div class="field">
-                <label for="testmail-an">Testmail (erst speichern, dann testen)</label>
+                <label for="testmail-an">Testmail-Empfänger</label>
                 <div class="inline-form">
-                    <input id="testmail-an" name="an" form="smtp-test" type="email"
+                    <input id="testmail-an" name="testmail_an" type="email"
                            placeholder="<?= e($value('club_email') ?: 'empfaenger@example.com') ?>">
-                    <button class="btn btn--sm" form="smtp-test" type="submit">Testmail senden</button>
+                    <button class="btn btn--sm" type="submit" name="testmail" value="1"
+                            title="Speichert ALLE Einstellungen dieser Seite und schickt danach eine Testmail">
+                        Speichern + Testmail senden
+                    </button>
                 </div>
+                <p class="field__hint">Speichert die Einstellungen mit und testet danach den Versand – es geht nichts verloren.</p>
             </div>
         </fieldset>
 
     <div class="form-actions">
         <button class="btn btn--primary" type="submit">Einstellungen speichern</button>
     </div>
-</form>
-
-<form id="smtp-test" method="post" action="<?= e(url('/admin/einstellungen/testmail')) ?>">
-    <?= csrf_field() ?>
 </form>
 
 <form id="lizenz-pruefen" method="post" action="<?= e(url('/admin/einstellungen/lizenz-pruefen')) ?>">

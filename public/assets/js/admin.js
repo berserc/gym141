@@ -308,3 +308,39 @@
         });
     }
 })();
+
+// ---------------------------------------------------------------------------
+// Ungespeicherte Aenderungen: Wer ein POST-Formular veraendert hat und die
+// Seite verlaesst (Link, Tab zu, Adresse wechseln), bekommt eine Warnung.
+// Das Absenden eines Formulars gilt als Speichern und hebt die Warnung auf.
+(function () {
+    var geaendert = false;
+
+    document.addEventListener('input', function (e) {
+        var form = e.target && e.target.closest ? e.target.closest('form') : null;
+
+        // Nur echte Bearbeitungsformulare (POST) - Filter/Suchen (GET) nicht.
+        if (form && (form.method || '').toLowerCase() === 'post') {
+            geaendert = true;
+        }
+    });
+
+    document.addEventListener('change', function (e) {
+        var form = e.target && e.target.closest ? e.target.closest('form') : null;
+
+        if (form && (form.method || '').toLowerCase() === 'post') {
+            geaendert = true;
+        }
+    });
+
+    document.addEventListener('submit', function () {
+        geaendert = false;
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        if (geaendert) {
+            e.preventDefault();
+            e.returnValue = ''; // Browser zeigen ihren Standard-Warntext
+        }
+    });
+})();

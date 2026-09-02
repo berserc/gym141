@@ -96,36 +96,34 @@ final class SettingsController
         }
 
         Audit::log('settings_updated', 'settings');
-        Flash::success('Einstellungen gespeichert.');
-        Url::redirect('/admin/einstellungen');
-    }
 
-    /** Testmail ueber die gespeicherten SMTP-Einstellungen. */
-    public function testMail(): void
-    {
-        AuthController::requireRole('superuser');
-        Csrf::verify();
+        // "Speichern + Testmail senden": erst wurde alles gespeichert (oben),
+        // dann testet der Versand mit genau diesen frischen Einstellungen.
+        if (post('testmail') === '1') {
+            $an = trim(post('testmail_an')) ?: trim($values['club_email'] ?? \App\Models\Setting::get('club_email'));
 
-        $an = trim(post('an')) ?: trim(\App\Models\Setting::get('club_email'));
+            if ($an === '') {
+                Flash::error('Einstellungen gespeichert. Für die Testmail bitte eine Empfängeradresse angeben.');
+                Url::redirect('/admin/einstellungen');
+            }
 
-        if ($an === '') {
-            Flash::error('Bitte eine Empfängeradresse angeben (oder Vereins-E-Mail hinterlegen).');
+            $fehler = \App\Core\Mailer::send(
+                $an,
+                'Testmail von ' . (\App\Models\Setting::get('club_name') ?: 'Gym141'),
+                "Wenn du diese Nachricht liest, funktioniert der E-Mail-Versand.\n\n"
+                . 'Versendet über ' . (\App\Core\Mailer::smtpConfigured() ? 'SMTP (' . \App\Models\Setting::get('smtp_host') . ')' : 'PHP mail()') . '.'
+            );
+
+            if ($fehler === '') {
+                Flash::success('Einstellungen gespeichert und Testmail an ' . $an . ' versendet – bitte Posteingang prüfen.');
+            } else {
+                Flash::error('Einstellungen gespeichert, aber: ' . $fehler);
+            }
+
             Url::redirect('/admin/einstellungen');
         }
 
-        $fehler = \App\Core\Mailer::send(
-            $an,
-            'Testmail von ' . (\App\Models\Setting::get('club_name') ?: 'Gym141'),
-            "Wenn du diese Nachricht liest, funktioniert der E-Mail-Versand.\n\n"
-            . 'Versendet über ' . (\App\Core\Mailer::smtpConfigured() ? 'SMTP (' . \App\Models\Setting::get('smtp_host') . ')' : 'PHP mail()') . '.'
-        );
-
-        if ($fehler === '') {
-            Flash::success('Testmail an ' . $an . ' versendet – bitte Posteingang prüfen.');
-        } else {
-            Flash::error($fehler);
-        }
-
+        Flash::success('Einstellungen gespeichert.');
         Url::redirect('/admin/einstellungen');
     }
 
