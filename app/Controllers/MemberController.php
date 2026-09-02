@@ -1256,13 +1256,46 @@ final class MemberController
         $member = $this->findAccessible($id);
 
         [$token] = \App\Models\InviteRepo::create($id, Auth::id());
+        $link    = \App\Models\InviteRepo::urlFor($token);
+        $verein  = \App\Models\Setting::get('club_name') ?: 'unser Verein';
+
+        // Direktversand per E-Mail (SMTP-Einstellungen unter /admin/einstellungen).
+        if (post('versand') === 'mail') {
+            $an = trim((string) $member['email']);
+
+            if ($an === '') {
+                Flash::error('Das Mitglied hat keine E-Mail-Adresse – bitte oben eintragen.');
+                Url::redirect('/admin/mitglieder/' . $id);
+            }
+
+            $fehler = \App\Core\Mailer::send(
+                $an,
+                'Deine Einladung zur ' . $verein . '-App',
+                "Hallo {$member['first_name']},\n\n"
+                . "hier ist deine persönliche Einladung zur Gym141-App von $verein:\n\n"
+                . $link . "\n\n"
+                . "Der Link ist 10 Minuten gültig und funktioniert nur einmal.\n"
+                . "Einfach öffnen und der Anleitung folgen – Zugangsdaten brauchst du keine.\n\n"
+                . "Sportliche Grüße\n$verein"
+            );
+
+            Audit::log('member_invite', 'member', $id, 'App-Einladung per E-Mail an ' . $an);
+
+            if ($fehler === '') {
+                Flash::success('Einladung per E-Mail an ' . $an . ' geschickt (10 Minuten gültig).');
+            } else {
+                Flash::error($fehler);
+            }
+
+            Url::redirect('/admin/mitglieder/' . $id);
+        }
 
         // Klartext-Token einmalig fuer die naechste Seitenanzeige merken.
         $_SESSION['app_invite_' . $id] = $token;
 
         Audit::log('member_invite', 'member', $id, 'App-Einladung erzeugt (gültig 10 Minuten)');
         Flash::success(sprintf(
-            'App-Einladung für %s erzeugt – Link unten kopieren und ans Mitglied schicken (10 Minuten gültig, einmalig).',
+            'App-Einladung für %s erzeugt – Link unten kopieren oder direkt teilen (10 Minuten gültig, einmalig).',
             $member['first_name'] . ' ' . $member['last_name']
         ));
         Url::redirect('/admin/mitglieder/' . $id . '#login-zugang');

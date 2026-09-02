@@ -20,6 +20,8 @@ final class SettingsController
         'club_email', 'club_phone', 'whatsapp_number', 'club_iban', 'club_bank',
         'club_tagline', 'home_title', 'home_text', 'fee_year', 'fee_options',
         'reminder_email',
+        // E-Mail-Versand (SMTP); smtp_pass wird gesondert behandelt (leer = unveraendert)
+        'smtp_host', 'smtp_port', 'smtp_user', 'smtp_secure', 'smtp_from', 'smtp_from_name',
         // Task141-Kopplung (Aufgaben-Freigaben fuer Externe)
         'task141_url', 'task141_service_key',
     ];
@@ -65,6 +67,15 @@ final class SettingsController
         Setting::set('public_site', post_bool('public_site') ? '1' : '0');
         Setting::set('member_area', post_bool('member_area') ? '1' : '0');
 
+        // SMTP-Passwort: leer gelassen = unveraendert (Loeschen per Checkbox).
+        $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
+
+        if (post_bool('smtp_pass_clear')) {
+            Setting::set('smtp_pass', '');
+        } elseif ($smtpPass !== '') {
+            Setting::set('smtp_pass', $smtpPass);
+        }
+
         // API-Schluessel: leer gelassen = unveraendert, damit er beim normalen
         // Speichern nicht verloren geht. Loeschen ueber die eigene Checkbox.
         $apiKey = trim(post('anthropic_api_key'));
@@ -86,6 +97,35 @@ final class SettingsController
 
         Audit::log('settings_updated', 'settings');
         Flash::success('Einstellungen gespeichert.');
+        Url::redirect('/admin/einstellungen');
+    }
+
+    /** Testmail ueber die gespeicherten SMTP-Einstellungen. */
+    public function testMail(): void
+    {
+        AuthController::requireRole('superuser');
+        Csrf::verify();
+
+        $an = trim(post('an')) ?: trim(\App\Models\Setting::get('club_email'));
+
+        if ($an === '') {
+            Flash::error('Bitte eine Empfängeradresse angeben (oder Vereins-E-Mail hinterlegen).');
+            Url::redirect('/admin/einstellungen');
+        }
+
+        $fehler = \App\Core\Mailer::send(
+            $an,
+            'Testmail von ' . (\App\Models\Setting::get('club_name') ?: 'Gym141'),
+            "Wenn du diese Nachricht liest, funktioniert der E-Mail-Versand.\n\n"
+            . 'Versendet über ' . (\App\Core\Mailer::smtpConfigured() ? 'SMTP (' . \App\Models\Setting::get('smtp_host') . ')' : 'PHP mail()') . '.'
+        );
+
+        if ($fehler === '') {
+            Flash::success('Testmail an ' . $an . ' versendet – bitte Posteingang prüfen.');
+        } else {
+            Flash::error($fehler);
+        }
+
         Url::redirect('/admin/einstellungen');
     }
 

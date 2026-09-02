@@ -268,9 +268,80 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
         </fieldset>
     </div>
 
+        <fieldset class="card">
+            <legend>E-Mail-Versand (SMTP)</legend>
+
+            <p class="muted">
+                Für App-Einladungen und andere Mails. Ohne Angaben wird PHP
+                <code>mail()</code> des Servers verwendet (funktioniert nicht überall).
+            </p>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label for="smtp_host">SMTP-Server</label>
+                    <input id="smtp_host" name="smtp_host" placeholder="z. B. smtp.world4you.com"
+                           value="<?= e($value('smtp_host')) ?>" autocomplete="off">
+                </div>
+                <div class="field field--xs">
+                    <label for="smtp_port">Port</label>
+                    <input id="smtp_port" name="smtp_port" type="number" min="1" max="65535"
+                           placeholder="587" value="<?= e($value('smtp_port')) ?>">
+                </div>
+                <div class="field field--sm">
+                    <label for="smtp_secure">Verschlüsselung</label>
+                    <select id="smtp_secure" name="smtp_secure">
+                        <option value="tls" <?= $value('smtp_secure', 'tls') === 'tls' ? 'selected' : '' ?>>STARTTLS (Port 587)</option>
+                        <option value="ssl" <?= $value('smtp_secure') === 'ssl' ? 'selected' : '' ?>>SSL/TLS (Port 465)</option>
+                        <option value="none" <?= $value('smtp_secure') === 'none' ? 'selected' : '' ?>>keine (nicht empfohlen)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label for="smtp_user">Benutzername</label>
+                    <input id="smtp_user" name="smtp_user" value="<?= e($value('smtp_user')) ?>" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label for="smtp_pass">Passwort <?= $value('smtp_pass') !== '' ? '(gesetzt – leer lassen = unverändert)' : '' ?></label>
+                    <input id="smtp_pass" name="smtp_pass" type="password" autocomplete="new-password"
+                           placeholder="<?= $value('smtp_pass') !== '' ? '••••••••' : '' ?>">
+                    <?php if ($value('smtp_pass') !== ''): ?>
+                        <label class="check"><input type="checkbox" name="smtp_pass_clear" value="1"> Passwort löschen</label>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label for="smtp_from">Absenderadresse</label>
+                    <input id="smtp_from" name="smtp_from" type="email" placeholder="verein@euerverein.at"
+                           value="<?= e($value('smtp_from')) ?>">
+                </div>
+                <div class="field">
+                    <label for="smtp_from_name">Absendername</label>
+                    <input id="smtp_from_name" name="smtp_from_name" placeholder="<?= e($value('club_name') ?: 'Vereinsname') ?>"
+                           value="<?= e($value('smtp_from_name')) ?>">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="testmail-an">Testmail (erst speichern, dann testen)</label>
+                <div class="inline-form">
+                    <input id="testmail-an" name="an" form="smtp-test" type="email"
+                           placeholder="<?= e($value('club_email') ?: 'empfaenger@example.com') ?>">
+                    <button class="btn btn--sm" form="smtp-test" type="submit">Testmail senden</button>
+                </div>
+            </div>
+        </fieldset>
+
     <div class="form-actions">
         <button class="btn btn--primary" type="submit">Einstellungen speichern</button>
     </div>
+</form>
+
+<form id="smtp-test" method="post" action="<?= e(url('/admin/einstellungen/testmail')) ?>">
+    <?= csrf_field() ?>
 </form>
 
 <form id="lizenz-pruefen" method="post" action="<?= e(url('/admin/einstellungen/lizenz-pruefen')) ?>">

@@ -1010,17 +1010,45 @@ $disabled = $canEdit ? '' : ' disabled';
                         App-Einladung erzeugen
                     </button>
                 </form>
+
+                <form method="post" action="<?= e(url('/admin/mitglieder/' . $id . '/app-einladung')) ?>" class="inline">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="versand" value="mail">
+                    <button class="btn btn--ghost" type="submit"
+                            <?= (string) $member['email'] === '' ? 'disabled title="Das Mitglied hat keine E-Mail-Adresse"' : 'title="Erzeugt eine Einladung und schickt sie sofort per E-Mail an ' . e($member['email']) . '"' ?>>
+                        Einladung per E-Mail schicken
+                    </button>
+                </form>
             </div>
 
             <?php $einladung = \App\Models\InviteRepo::openFor($id); ?>
             <?php if ($einladung !== null && ($appInviteToken ?? '') !== ''): ?>
+                <?php
+                $inviteUrl  = \App\Models\InviteRepo::urlFor((string) $appInviteToken);
+                $inviteText = 'Deine Einladung zur Gym141-App (10 Minuten gültig, einmalig): ' . $inviteUrl;
+                // WhatsApp: direkt an die Handynummer des Mitglieds, sonst Chat-Auswahl.
+                $handy = (string) preg_replace('/\D+/', '', (string) $member['phone']);
+                $handy = str_starts_with($handy, '00') ? substr($handy, 2)
+                    : (str_starts_with($handy, '0') ? '43' . substr($handy, 1) : $handy);
+                $waLink = 'https://wa.me/' . ($handy !== '' ? $handy : '') . '?text=' . rawurlencode($inviteText);
+                ?>
                 <div class="field" style="margin-top:.7rem">
                     <label>Einladungslink (gültig bis <?= e(gmdate('H:i', strtotime((string) $einladung['expires_at']))) ?> UTC, einmalig)</label>
-                    <input readonly value="<?= e(\App\Models\InviteRepo::urlFor((string) $appInviteToken)) ?>"
+                    <input readonly value="<?= e($inviteUrl) ?>"
                            onclick="this.select();document.execCommand('copy')" title="Klick kopiert den Link">
+                    <div class="inline-form" style="margin-top:.4rem;gap:.5rem">
+                        <a class="btn btn--sm" target="_blank" rel="noopener" href="<?= e($waLink) ?>">
+                            Per WhatsApp senden<?= $handy !== '' ? ' (' . e($member['phone']) . ')' : ' (Chat wählen)' ?>
+                        </a>
+                        <a class="btn btn--sm btn--ghost"
+                           href="mailto:<?= e((string) $member['email']) ?>?subject=<?= rawurlencode('Deine Einladung zur Gym141-App') ?>&body=<?= rawurlencode($inviteText) ?>">
+                            Im Mailprogramm öffnen
+                        </a>
+                    </div>
                     <p class="field__hint">
-                        Link ans Mitglied schicken (WhatsApp/E-Mail) – oder in der Admin-App als
-                        QR-Code erzeugen und direkt abfotografieren lassen.
+                        Auf dem Handy öffnet der Link die Gym141-App direkt – sonst zeigt er
+                        eine Anleitung mit kopierbarem Code. Alternativ in der Admin-App als
+                        QR-Code zeigen und abfotografieren lassen.
                     </p>
                 </div>
             <?php endif; ?>

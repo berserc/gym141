@@ -22,6 +22,17 @@
             Zugangsdaten mit deinem Verein – sie ist <strong>10 Minuten gültig</strong>
             und funktioniert nur einmal.</p>
 
+        <p style="margin:1.2rem 0">
+            <a class="btn btn--primary" href="<?= e($appUri) ?>"
+               style="display:inline-block;padding:.8rem 1.4rem;font-size:1.05rem">
+                📲 In der Gym141-App öffnen
+            </a>
+        </p>
+        <p style="opacity:.65;font-size:.85rem;margin-top:-.6rem">
+            Öffnet die App direkt (Android/iPhone mit installierter App).
+            Passiert nichts, folge einfach den Schritten unten.
+        </p>
+
         <ol style="line-height:1.9">
             <li>Öffne die <strong>Gym141-App</strong> (App Store / Google Play / Windows).</li>
             <li>Tippe im Menü auf <strong>„Verein hinzufügen“</strong>.</li>
