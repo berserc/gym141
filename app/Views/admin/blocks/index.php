@@ -338,6 +338,16 @@ $istStartseite = $pageId === null && $sectionId === null;
 
             <?php endif; ?>
 
+            <div class="field field--sm" style="margin-top:.6rem">
+                <label>Ankerpunkt (optional)</label>
+                <input name="anchor" maxlength="60" value="<?= e((string) ($cfg['anchor'] ?? '')) ?>"
+                       placeholder="z. B. kontakt" pattern="[a-z0-9\-]*">
+                <p class="field__hint">
+                    Macht den Block über <code>/#anker</code> anspringbar – z. B. für
+                    einen eigenen <a href="<?= e(url('/admin/menue')) ?>">Menüpunkt</a>.
+                </p>
+            </div>
+
             <button class="btn btn--primary" type="submit">Speichern</button>
         </form>
 

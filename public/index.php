@@ -479,6 +479,14 @@ $router->get('/admin/einstellungen', [$settings, 'index']);
 $router->post('/admin/einstellungen', [$settings, 'save']);
 $router->post('/admin/einstellungen/beitraege-bereinigen', [$settings, 'purgeOldFees']);
 
+// Eigene Menuepunkte (Hauptmenue/Footer der Website).
+$menu = new App\Controllers\MenuController();
+
+$router->get('/admin/menue', [$menu, 'index']);
+$router->post('/admin/menue', [$menu, 'store']);
+$router->post('/admin/menue/{id}', [$menu, 'update']);
+$router->post('/admin/menue/{id}/loeschen', [$menu, 'destroy']);
+
 // Design-Baukasten fuer die oeffentliche Website (Farben + Schrift).
 $design = new App\Controllers\DesignController();
 

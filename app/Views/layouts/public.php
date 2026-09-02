@@ -57,6 +57,10 @@ $pageTitle = $title !== '' ? $title . ' | ' . $appName : $appName;
 
         <nav class="site-nav" aria-label="Hauptnavigation">
             <a href="<?= e(url('/')) ?>"<?= $activePage === 'home' ? ' aria-current="page"' : '' ?>>Training</a>
+            <?php foreach (\App\Controllers\MenuController::itemsFor('haupt') as $punkt): ?>
+                <a href="<?= e(str_starts_with((string) $punkt['url'], '/') ? url((string) $punkt['url']) : (string) $punkt['url']) ?>"<?=
+                    str_starts_with((string) $punkt['url'], 'http') ? ' target="_blank" rel="noopener"' : '' ?>><?= e($punkt['label']) ?></a>
+            <?php endforeach; ?>
         </nav>
     </div>
 </header>
@@ -102,6 +106,10 @@ $pageTitle = $title !== '' ? $title . ' | ' . $appName : $appName;
         <nav class="site-footer__col site-footer__nav" aria-label="Rechtliches">
             <?php foreach ($footerPages as $footerPage): ?>
                 <a href="<?= e(url('/seite/' . $footerPage['slug'])) ?>"><?= e($footerPage['title']) ?></a>
+            <?php endforeach; ?>
+            <?php foreach (\App\Controllers\MenuController::itemsFor('footer') as $punkt): ?>
+                <a href="<?= e(str_starts_with((string) $punkt['url'], '/') ? url((string) $punkt['url']) : (string) $punkt['url']) ?>"<?=
+                    str_starts_with((string) $punkt['url'], 'http') ? ' target="_blank" rel="noopener"' : '' ?>><?= e($punkt['label']) ?></a>
             <?php endforeach; ?>
         </nav>
     </div>

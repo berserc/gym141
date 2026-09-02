@@ -16,5 +16,13 @@ foreach (($pageBlocks ?? []) as $pageBlock) {
     }
 
     $cfg = (array) $pageBlock['config'];
+
+    // Optionaler Ankerpunkt: macht den Block per /#anker (Menuepunkt) anspringbar.
+    $anker = trim((string) ($cfg['anchor'] ?? ''));
+
+    if ($anker !== '') {
+        echo '<span id="' . e($anker) . '" style="display:block;position:relative;top:-4rem"></span>';
+    }
+
     require $template;
 }

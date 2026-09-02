@@ -1009,3 +1009,18 @@ CREATE TABLE IF NOT EXISTS member_invites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_invites_member ON member_invites(member_id);
+
+-- Eigene Menuepunkte fuer die oeffentliche Website: Hauptmenue und/oder
+-- Footer, mit freier URL (/meineurl, /#anker auf der Startseite, extern).
+CREATE TABLE IF NOT EXISTS menu_items (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    label      TEXT    NOT NULL,
+    url        TEXT    NOT NULL,                 -- /pfad, /#anker oder https://...
+    position   TEXT    NOT NULL DEFAULT 'haupt'
+                       CHECK (position IN ('haupt', 'footer', 'beide')),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    published  INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_menu_sort ON menu_items(position, sort_order);

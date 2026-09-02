@@ -97,6 +97,12 @@ final class BlockAdminController
         $id    = (int) $block['id'];
         $cfg   = $block['config'];
 
+        // Ankerpunkt (alle Blocktypen): macht den Block ueber einen
+        // Menuepunkt /#anker anspringbar (nur Buchstaben/Ziffern/-).
+        if (array_key_exists('anchor', $_POST)) {
+            $cfg['anchor'] = (string) preg_replace('/[^a-z0-9\-]/', '', mb_strtolower(trim(post('anchor'))));
+        }
+
         switch ((string) $block['type']) {
             case 'text':
                 $cfg['html'] = safe_html((string) ($_POST['html'] ?? ''));

@@ -78,6 +78,7 @@ $nav = [
     ],
     'System' => [
         ['/admin/seiten', 'Seiten', 'superuser', [], 'file'],
+        ['/admin/menue', 'Menü', 'superuser', [], 'list'],
         ['/admin/benutzer', 'Benutzer', 'superuser', [], 'key'],
         ['/admin/import', 'Import', 'superuser', [], 'download'],
         ['/admin/gemeinden', 'Gemeinden', 'superuser', [], 'map'],

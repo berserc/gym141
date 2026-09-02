@@ -258,6 +258,19 @@ final class Installer
         )");
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id)');
 
+        // Seit 1.21.0: eigene Menuepunkte (Hauptmenue/Footer der Website).
+        $pdo->exec("CREATE TABLE IF NOT EXISTS menu_items (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            label      TEXT    NOT NULL,
+            url        TEXT    NOT NULL,
+            position   TEXT    NOT NULL DEFAULT 'haupt'
+                               CHECK (position IN ('haupt', 'footer', 'beide')),
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            published  INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_menu_sort ON menu_items(position, sort_order)');
+
         // Seit 1.17.0: App-Einladungen (Kurzzeit-Token fuer Link/QR-Beitritt).
         $pdo->exec("CREATE TABLE IF NOT EXISTS member_invites (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
