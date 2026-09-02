@@ -214,6 +214,33 @@ final class MemberApiController
         ]);
     }
 
+    /**
+     * Website-Passwort aus der App setzen/aendern: damit koennen auch per
+     * Einladung verbundene Mitglieder (ohne Passwort) den Mitgliederbereich
+     * der Website voll nutzen - ein Konto, beide Kanaele.
+     */
+    public function password_set(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $passwort = (string) ($this->body()['password'] ?? '');
+
+        if (mb_strlen($passwort) < Auth::MIN_PASSWORD_LENGTH) {
+            $this->json(['error' => 'Das Passwort muss mindestens ' . Auth::MIN_PASSWORD_LENGTH . ' Zeichen haben.'], 422);
+        }
+
+        if (trim((string) $member['email']) === '') {
+            $this->json(['error' => 'Für den Website-Login braucht dein Profil eine E-Mail-Adresse – bitte zuerst in den Stammdaten eintragen.'], 422);
+        }
+
+        Database::update('members', (int) $member['id'], [
+            'can_login'           => 1,
+            'login_password_hash' => password_hash($passwort, PASSWORD_DEFAULT),
+        ]);
+
+        $this->json(['ok' => true, 'login_email' => (string) $member['email']]);
+    }
+
     // -------------------------------------------------------------- Gewicht --
 
     /** Gewichtsverlauf (beide Quellen; die App zeigt Trainer-Messungen nur an). */

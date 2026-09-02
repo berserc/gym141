@@ -22,9 +22,12 @@ final class InviteRepo
      */
     public static function create(int $memberId, ?int $createdBy): array
     {
-        // Abgelaufene und verbrauchte Einladungen bei der Gelegenheit raeumen.
+        // Alte Einladungen raeumen - eingeloeste erst nach einem Tag, damit
+        // die Wartezeit-Pruefung (selbst erzeugte QR-Codes) Bestand hat.
         Database::run(
-            "DELETE FROM member_invites WHERE used_at IS NOT NULL OR expires_at < datetime('now', '-1 day')"
+            "DELETE FROM member_invites
+              WHERE (used_at IS NOT NULL AND used_at < datetime('now', '-1 day'))
+                 OR expires_at < datetime('now', '-1 day')"
         );
 
         $token   = bin2hex(random_bytes(20));
@@ -79,6 +82,31 @@ final class InviteRepo
         }
 
         return $member;
+    }
+
+    /** Wartezeit zwischen SELBST erzeugten Einladungen (Missbrauchsschutz). */
+    public const SELF_COOLDOWN_MINUTES = 5;
+
+    /**
+     * Restliche Wartezeit in Sekunden, bis das Mitglied selbst wieder eine
+     * Einladung erzeugen darf (0 = sofort erlaubt). Zaehlt nur die selbst
+     * erzeugten (created_by IS NULL) - Admin-Einladungen bremsen nicht.
+     */
+    public static function selfCooldownSeconds(int $memberId): int
+    {
+        $letzte = Database::value(
+            'SELECT MAX(created_at) FROM member_invites
+              WHERE member_id = ? AND created_by IS NULL',
+            [$memberId]
+        );
+
+        if ($letzte === null) {
+            return 0;
+        }
+
+        $frei = strtotime((string) $letzte . ' UTC') + self::SELF_COOLDOWN_MINUTES * 60;
+
+        return max(0, $frei - time());
     }
 
     /** Gueltige (offene) Einladung eines Mitglieds, falls vorhanden. */

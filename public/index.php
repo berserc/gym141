@@ -265,6 +265,7 @@ if ($memberArea) {
 
     $router->post('/api/app/login', [$app, 'login']);
     $router->post('/api/app/einladung', [$app, 'invite_redeem']);
+    $router->post('/api/app/passwort', [$app, 'password_set']);
     $router->post('/api/app/logout', [$app, 'logout']);
     $router->get('/api/app/profil', [$app, 'profile_get']);
     $router->post('/api/app/profil', [$app, 'profile_update']);
@@ -281,6 +282,8 @@ if ($memberArea) {
     $router->get('/mitglied', [$mitglied, 'home']);
     $router->get('/mitglied/termine', [$mitglied, 'events']);
     $router->post('/mitglied/termin/{id}/antwort', [$mitglied, 'respond']);
+    $router->get('/mitglied/app', [$mitglied, 'appPage']);
+    $router->post('/mitglied/app-einladung', [$mitglied, 'selfInvite']);
     $router->get('/mitglied/passwort', [$mitglied, 'showPassword']);
     $router->post('/mitglied/passwort', [$mitglied, 'changePassword']);
     $router->get('/mitglied/entwicklung', [$mitglied, 'development']);

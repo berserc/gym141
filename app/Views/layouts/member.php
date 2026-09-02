@@ -43,6 +43,7 @@ $mitglied = MemberAuth::member();
             <a href="<?= e(url('/mitglied')) ?>"<?= $aktiv === url('/mitglied') ? ' aria-current="page"' : '' ?>>Übersicht</a>
             <a href="<?= e(url('/mitglied/termine')) ?>"<?= $aktiv === url('/mitglied/termine') ? ' aria-current="page"' : '' ?>>Termine</a>
             <a href="<?= e(url('/mitglied/entwicklung')) ?>"<?= $aktiv === url('/mitglied/entwicklung') ? ' aria-current="page"' : '' ?>>Entwicklung</a>
+            <a href="<?= e(url('/mitglied/app')) ?>"<?= $aktiv === url('/mitglied/app') ? ' aria-current="page"' : '' ?>>App</a>
             <a href="<?= e(url('/mitglied/passwort')) ?>"<?= $aktiv === url('/mitglied/passwort') ? ' aria-current="page"' : '' ?>>Passwort</a>
         </nav>
 

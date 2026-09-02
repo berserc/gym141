@@ -201,6 +201,64 @@ final class MemberAreaController
         ], 'layouts/member');
     }
 
+    /**
+     * "Gym141-App verbinden": Das Mitglied erzeugt sich SELBST einen
+     * QR-Code/Link fuer die App - mit 5 Minuten Wartezeit zwischen zwei
+     * Erzeugungen (Missbrauchsschutz). Token wie bei Admin-Einladungen:
+     * 10 Minuten gueltig, einmalig.
+     */
+    public function appPage(): void
+    {
+        $member = MemberAuth::require();
+
+        // Frisch erzeugter Token (nur einmal sichtbar, aus der Session).
+        $token = (string) ($_SESSION['self_invite'] ?? '');
+        unset($_SESSION['self_invite']);
+
+        View::display('member/app-connect', [
+            'title'       => 'Gym141-App verbinden',
+            'activePage'  => 'app',
+            'token'       => $token,
+            'appUri'      => $token !== '' ? \App\Models\InviteRepo::uriFor($token) : '',
+            'inviteUrl'   => $token !== '' ? \App\Models\InviteRepo::urlFor($token) : '',
+            'wartezeit'   => \App\Models\InviteRepo::selfCooldownSeconds((int) $member['id']),
+            'ttlMinuten'  => \App\Models\InviteRepo::TTL_MINUTES,
+        ], 'layouts/member');
+    }
+
+    /** QR-Code selbst erzeugen (POST) - respektiert die 5-Minuten-Wartezeit. */
+    public function selfInvite(): void
+    {
+        $member = MemberAuth::require();
+        Csrf::verify();
+
+        $rest = \App\Models\InviteRepo::selfCooldownSeconds((int) $member['id']);
+
+        if ($rest > 0) {
+            Flash::error(sprintf(
+                'Bitte noch %d:%02d Minuten warten, dann kannst du einen neuen QR-Code erzeugen.',
+                intdiv($rest, 60),
+                $rest % 60
+            ));
+            Url::redirect('/mitglied/app');
+        }
+
+        // created_by NULL = selbst erzeugt (zaehlt fuer die Wartezeit).
+        [$token] = \App\Models\InviteRepo::create((int) $member['id'], null);
+        $_SESSION['self_invite'] = $token;
+
+        \App\Core\Audit::logAs(
+            null,
+            trim($member['first_name'] . ' ' . $member['last_name']) . ' (Mitglied)',
+            'member_invite',
+            'member',
+            (int) $member['id'],
+            'App-Einladung selbst erzeugt (gültig 10 Minuten)'
+        );
+
+        Url::redirect('/mitglied/app');
+    }
+
     /** Oeffentliche App-Einladungsseite (Anleitung + Code; loest NICHT ein). */
     public function appInvite(array $args): void
     {
