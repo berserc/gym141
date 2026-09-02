@@ -153,6 +153,9 @@ $exportQuery = array_filter($filters, static fn (string $v): bool => $v !== '');
                             <?php if ((string) $r['category'] !== ''): ?>
                                 <span class="badge"><?= e($categories[(string) $r['category']] ?? $r['category']) ?></span>
                             <?php endif; ?>
+                            <?php if ((string) ($r['settled_info'] ?? '') !== ''): ?>
+                                <br><em class="muted">✓ <?= e((string) $r['settled_info']) ?></em>
+                            <?php endif; ?>
                             <form method="post" class="inline" action="<?= e(url('/admin/bank/' . $id . '/zuordnen')) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="aktion" value="zuruecksetzen">
@@ -181,6 +184,11 @@ $exportQuery = array_filter($filters, static fn (string $v): bool => $v !== '');
                                 <div class="field field--sm">
                                     <input name="note" placeholder="Notiz" value="<?= e((string) $r['note']) ?>">
                                 </div>
+                                <?php if ((float) $r['amount'] > 0): ?>
+                                    <label class="check" title="Bei Kategorie Mitgliedsbeitrag: offene Beitragsperioden des Mitglieds mit dieser Zahlung als bezahlt verbuchen (inkl. Kassabuch)">
+                                        <input type="checkbox" name="settle" value="1" checked> Beiträge ausgleichen
+                                    </label>
+                                <?php endif; ?>
                                 <button class="btn btn--sm" type="submit">Übernehmen</button>
                             </form>
                         <?php endif; ?>

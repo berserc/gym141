@@ -258,6 +258,12 @@ final class Installer
         )");
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id)');
 
+        // Seit 1.16.0: Kopplung Bankzahlung -> beglichene Beitragsperioden.
+        $this->addColumns($pdo, 'bank_transactions', [
+            'settled_info' => "TEXT NOT NULL DEFAULT ''",
+            'settled_ids'  => "TEXT NOT NULL DEFAULT ''",
+        ]);
+
         // Gemeindetabelle: frueher nur (id, name, sort_order)
         $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='gemeinden'")->fetchColumn();
 

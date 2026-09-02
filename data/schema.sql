@@ -971,6 +971,9 @@ CREATE TABLE IF NOT EXISTS bank_transactions (
     member_id   INTEGER REFERENCES members(id) ON DELETE SET NULL,
     category    TEXT    NOT NULL DEFAULT '',      -- z. B. mitgliedsbeitrag, verkauf
     note        TEXT    NOT NULL DEFAULT '',
+    -- welche Beitragsperioden mit dieser Zahlung beglichen wurden
+    settled_info TEXT   NOT NULL DEFAULT '',  -- Anzeige (Labels)
+    settled_ids  TEXT   NOT NULL DEFAULT '',  -- fee_entries-Ids (CSV, fuers Zuruecksetzen)
     assigned_by INTEGER REFERENCES users(id),
     assigned_at TEXT,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))

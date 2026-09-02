@@ -14,6 +14,7 @@ use App\Core\Flash;
 use App\Core\Url;
 use App\Core\View;
 use App\Core\XlsxWriter;
+use App\Models\FeeRepo;
 use App\Models\MemberRepo;
 
 /**
@@ -262,11 +263,22 @@ final class BankController
         $id = (int) $tx['id'];
 
         if (post('aktion') === 'zuruecksetzen') {
+            // Mit dieser Zahlung beglichene Beitragsperioden wieder oeffnen,
+            // damit Kassabuch und Beitragsliste konsistent bleiben.
+            $wiederOffen = 0;
+
+            foreach (array_filter(array_map('intval', explode(',', (string) ($tx['settled_ids'] ?? '')))) as $entryId) {
+                FeeRepo::markOpen($entryId);
+                $wiederOffen++;
+            }
+
             Database::update('bank_transactions', $id, [
                 'status' => 'unbestimmt', 'member_id' => null, 'category' => '',
+                'settled_info' => '', 'settled_ids' => '',
                 'assigned_by' => null, 'assigned_at' => null,
             ]);
-            Flash::success('Zuordnung aufgehoben.');
+            Flash::success('Zuordnung aufgehoben.'
+                . ($wiederOffen > 0 ? " $wiederOffen Beitragsperiode(n) wieder auf offen gesetzt." : ''));
             $this->back();
         }
 
@@ -293,42 +305,152 @@ final class BankController
             $this->back();
         }
 
+        // Beitragskopplung: Eingang + Mitglied + Kategorie Mitgliedsbeitrag
+        // gleicht offene Beitragsperioden aus (abschaltbar per Haken).
+        $settledInfo = '';
+        $settledIds  = [];
+
+        if ($memberId !== null && $category === 'mitgliedsbeitrag'
+            && (float) $tx['amount'] > 0 && post_bool('settle') === 1) {
+            [$settledInfo, $settledIds] = $this->settleFees($memberId, (float) $tx['amount'], (string) $tx['booked_on'], $id);
+        }
+
         Database::update('bank_transactions', $id, [
-            'member_id'   => $memberId,
-            'category'    => $category,
-            'note'        => mb_substr(trim(post('note')), 0, 300),
-            'status'      => 'uebernommen',
-            'assigned_by' => Auth::id(),
-            'assigned_at' => gmdate('Y-m-d H:i:s'),
+            'member_id'    => $memberId,
+            'category'     => $category,
+            'note'         => mb_substr(trim(post('note')), 0, 300),
+            'settled_info' => $settledInfo,
+            'settled_ids'  => implode(',', $settledIds),
+            'status'       => 'uebernommen',
+            'assigned_by'  => Auth::id(),
+            'assigned_at'  => gmdate('Y-m-d H:i:s'),
         ]);
 
         Audit::log('bank_assign', 'bank_transaction', $id, sprintf(
-            '%s %.2f: %s',
+            '%s %.2f: %s%s',
             (string) $tx['booked_on'],
             (float) $tx['amount'],
-            $memberId !== null ? 'Mitglied #' . $memberId : self::CATEGORIES[$category]
+            $memberId !== null ? 'Mitglied #' . $memberId : self::CATEGORIES[$category],
+            $settledInfo !== '' ? ' – ' . $settledInfo : ''
         ));
 
-        Flash::success('Zahlung übernommen.');
+        Flash::success('Zahlung übernommen.' . ($settledInfo !== '' ? ' ' . $settledInfo : ''));
         $this->back();
     }
 
-    /** Alle Auto-Vorschlaege in einem Schritt uebernehmen. */
+    /** Alle Auto-Vorschlaege uebernehmen; Beitragseingaenge gleichen dabei offene Perioden aus. */
     public function confirmSuggestions(): void
     {
         AuthController::requireRole('superuser', 'kassier');
         Csrf::verify();
 
-        $anzahl = Database::run(
-            "UPDATE bank_transactions
-                SET status = 'uebernommen', assigned_by = ?, assigned_at = ?
-              WHERE status = 'vorgeschlagen'",
-            [Auth::id(), gmdate('Y-m-d H:i:s')]
-        )->rowCount();
+        $anzahl    = 0;
+        $beglichen = 0;
 
-        Audit::log('bank_confirm_all', 'bank_transaction', null, $anzahl . ' Vorschläge übernommen');
-        Flash::success($anzahl . ' vorgeschlagene Zuordnungen übernommen.');
+        foreach (Database::all("SELECT * FROM bank_transactions WHERE status = 'vorgeschlagen'") as $tx) {
+            $settledInfo = '';
+            $settledIds  = [];
+
+            if ($tx['member_id'] !== null && (string) $tx['category'] === 'mitgliedsbeitrag'
+                && (float) $tx['amount'] > 0) {
+                [$settledInfo, $settledIds] = $this->settleFees(
+                    (int) $tx['member_id'],
+                    (float) $tx['amount'],
+                    (string) $tx['booked_on'],
+                    (int) $tx['id']
+                );
+            }
+
+            Database::update('bank_transactions', (int) $tx['id'], [
+                'status'       => 'uebernommen',
+                'settled_info' => $settledInfo,
+                'settled_ids'  => implode(',', $settledIds),
+                'assigned_by'  => Auth::id(),
+                'assigned_at'  => gmdate('Y-m-d H:i:s'),
+            ]);
+
+            $anzahl++;
+
+            if ($settledInfo !== '') {
+                $beglichen++;
+            }
+        }
+
+        Audit::log('bank_confirm_all', 'bank_transaction', null, $anzahl . ' Vorschläge übernommen, ' . $beglichen . ' mit Beitragsausgleich');
+        Flash::success($anzahl . ' vorgeschlagene Zuordnungen übernommen'
+            . ($beglichen > 0 ? ", $beglichen davon mit ausgeglichenen Beiträgen" : '') . '.');
         $this->back();
+    }
+
+    /**
+     * Offene Beitragsperioden eines Mitglieds mit einer Bankzahlung ausgleichen.
+     *
+     * Zuerst wird eine Periode mit EXAKT passendem Betrag gesucht; sonst
+     * werden die aeltesten offenen Perioden beglichen, solange der Betrag
+     * reicht. Ein Rest bleibt unverbucht und wird ausgewiesen. Jede
+     * beglichene Periode laeuft ueber FeeRepo::markPaid (inkl. Kassabuch).
+     *
+     * @return array{0: string, 1: list<int>} [Anzeige-Text, beglichene fee_entries-Ids]
+     */
+    private function settleFees(int $memberId, float $betrag, string $bookedOn, int $txId): array
+    {
+        $offen = Database::all(
+            'SELECT id, period, period_label, amount FROM fee_entries
+              WHERE member_id = ? AND paid = 0
+              ORDER BY due_date, period',
+            [$memberId]
+        );
+
+        if ($offen === []) {
+            return ['Keine offenen Beiträge – nichts ausgeglichen.', []];
+        }
+
+        $beglichen = [];
+        $rest      = round($betrag, 2);
+
+        // 1) Exakter Treffer auf genau eine Periode.
+        foreach ($offen as $zeile) {
+            if (abs((float) $zeile['amount'] - $rest) < 0.005) {
+                $beglichen[] = $zeile;
+                $rest        = 0.0;
+                break;
+            }
+        }
+
+        // 2) Sonst die aeltesten Perioden ausgleichen, solange der Betrag reicht.
+        if ($beglichen === []) {
+            foreach ($offen as $zeile) {
+                if ((float) $zeile['amount'] <= $rest + 0.005) {
+                    $beglichen[] = $zeile;
+                    $rest        = round($rest - (float) $zeile['amount'], 2);
+                }
+            }
+        }
+
+        if ($beglichen === []) {
+            return [sprintf('Betrag (%.2f €) deckt keine offene Periode – nichts ausgeglichen.', $betrag), []];
+        }
+
+        foreach ($beglichen as $zeile) {
+            FeeRepo::markPaid(
+                (int) $zeile['id'],
+                null,
+                $bookedOn,
+                Auth::id(),
+                'per Bankimport (Zahlung #' . $txId . ')'
+            );
+        }
+
+        $labels = implode(', ', array_map(
+            static fn (array $z): string => (string) ($z['period_label'] ?: $z['period']),
+            $beglichen
+        ));
+
+        return [
+            'Beglichen: ' . $labels
+                . ($rest > 0.005 ? sprintf(' – Rest %.2f € offen gelassen', $rest) : ''),
+            array_map(static fn (array $z): int => (int) $z['id'], $beglichen),
+        ];
     }
 
     // --------------------------------------------------------------- Belege --
@@ -442,7 +564,7 @@ final class BankController
 
         $daten = [[
             'Datum', 'Betrag', 'Währung', 'Gegenpartei', 'IBAN', 'Verwendungszweck',
-            'Status', 'Mitglied', 'Mitgl.-Nr.', 'Kategorie', 'Notiz', 'Belege',
+            'Status', 'Mitglied', 'Mitgl.-Nr.', 'Kategorie', 'Beglichene Beiträge', 'Notiz', 'Belege',
         ]];
 
         foreach ($rows as $r) {
@@ -462,6 +584,7 @@ final class BankController
                 $r['member_id'] !== null ? trim($r['last_name'] . ' ' . $r['first_name']) : '',
                 (string) ($r['member_no'] ?? ''),
                 self::CATEGORIES[(string) $r['category']] ?? (string) $r['category'],
+                (string) ($r['settled_info'] ?? ''),
                 (string) $r['note'],
                 implode(' | ', array_map(
                     static fn (array $f): string => $f['filename'] . ': ' . $basis . url('/admin/bank/beleg/' . $f['id']),
@@ -471,7 +594,7 @@ final class BankController
         }
 
         $xlsx = new XlsxWriter();
-        $xlsx->addSheet('Zahlungen', $daten, [11, 11, 8, 26, 24, 40, 13, 24, 10, 20, 24, 50]);
+        $xlsx->addSheet('Zahlungen', $daten, [11, 11, 8, 26, 24, 40, 13, 24, 10, 20, 28, 24, 50]);
         $xlsx->download('zahlungen-' . date('Y-m-d') . '.xlsx');
     }
 
