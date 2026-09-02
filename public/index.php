@@ -474,6 +474,7 @@ $settings = new SettingsController();
 
 $router->get('/admin/einstellungen', [$settings, 'index']);
 $router->post('/admin/einstellungen', [$settings, 'save']);
+$router->post('/admin/einstellungen/beitraege-bereinigen', [$settings, 'purgeOldFees']);
 
 // Design-Baukasten fuer die oeffentliche Website (Farben + Schrift).
 $design = new App\Controllers\DesignController();

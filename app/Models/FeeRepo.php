@@ -282,7 +282,21 @@ final class FeeRepo
         $pauses  = self::allPauses();
         $created = 0;
 
-        Database::transaction(static function () use ($members, $today, $pauses, &$created): void {
+        // Vereinsweites Erfassungs-Startdatum: Perioden davor entstehen nicht
+        // (Einstellungen -> "Beitraege erfassen ab"; leer = keine Grenze).
+        $erfassenAb = null;
+
+        try {
+            $abRaw = Setting::get('fee_capture_from');
+
+            if ($abRaw !== '') {
+                $erfassenAb = new DateTimeImmutable($abRaw);
+            }
+        } catch (\Exception) {
+            $erfassenAb = null;
+        }
+
+        Database::transaction(static function () use ($members, $today, $pauses, $erfassenAb, &$created): void {
             foreach ($members as $m) {
                 $months = self::INTERVALS[(string) $m['interval']][0] ?? 1;
 
@@ -301,6 +315,15 @@ final class FeeRepo
                 $limit = $today->modify('-10 years');
                 if ($period < $limit) {
                     $period = self::periodStart($limit, $months);
+                }
+
+                // Erfassungs-Startdatum: fruehestens die Periode, in die es faellt.
+                if ($erfassenAb !== null) {
+                    $abPeriode = self::periodStart($erfassenAb, $months);
+
+                    if ($period < $abPeriode) {
+                        $period = $abPeriode;
+                    }
                 }
 
                 // Austritt: nach dem Austrittsdatum keine neuen Perioden mehr.

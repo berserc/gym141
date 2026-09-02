@@ -19,6 +19,7 @@ final class SettingsController
         'club_name', 'club_street', 'club_zip', 'club_city', 'club_zvr',
         'club_email', 'club_phone', 'whatsapp_number', 'club_iban', 'club_bank',
         'club_tagline', 'home_title', 'home_text', 'fee_year', 'fee_options',
+        'fee_capture_from',
         'reminder_email',
         // E-Mail-Versand (SMTP); smtp_pass wird gesondert behandelt (leer = unveraendert)
         'smtp_host', 'smtp_port', 'smtp_user', 'smtp_secure', 'smtp_from', 'smtp_from_name',
@@ -30,13 +31,52 @@ final class SettingsController
     {
         AuthController::requireRole('superuser');
 
+        // Offene Beitraege VOR dem Erfassungs-Startdatum (Bereinigungs-Angebot).
+        $erfassenAb  = Setting::get('fee_capture_from');
+        $alteOffene  = ['count' => 0, 'sum' => 0.0];
+
+        if ($erfassenAb !== '') {
+            $alteOffene = Database::one(
+                'SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS sum
+                   FROM fee_entries WHERE paid = 0 AND due_date < ?',
+                [$erfassenAb]
+            ) ?? $alteOffene;
+        }
+
         View::display('admin/settings', [
             'title'          => 'Einstellungen',
             'settings'       => Setting::all(),
             'feeYear'        => Setting::feeYear(),
             'gemeindenAktiv' => (int) Database::value('SELECT COUNT(*) FROM gemeinden WHERE active = 1'),
             'gemeindenTotal' => (int) Database::value('SELECT COUNT(*) FROM gemeinden'),
+            'alteOffene'     => ['count' => (int) $alteOffene['count'], 'sum' => (float) $alteOffene['sum']],
         ], 'layouts/admin');
+    }
+
+    /**
+     * Offene Beitraege vor dem Erfassungs-Startdatum endgueltig loeschen
+     * (nach Bestaetigungsdialog). Bezahlte Beitraege bleiben IMMER erhalten.
+     */
+    public function purgeOldFees(): void
+    {
+        AuthController::requireRole('superuser');
+        Csrf::verify();
+
+        $erfassenAb = Setting::get('fee_capture_from');
+
+        if ($erfassenAb === '') {
+            Flash::error('Bitte zuerst „Beiträge erfassen ab“ setzen und speichern.');
+            Url::redirect('/admin/einstellungen');
+        }
+
+        $anzahl = Database::run(
+            'DELETE FROM fee_entries WHERE paid = 0 AND due_date < ?',
+            [$erfassenAb]
+        )->rowCount();
+
+        Audit::log('fees_purged', 'settings', null, $anzahl . ' offene Beiträge vor ' . $erfassenAb . ' gelöscht');
+        Flash::success($anzahl . ' offene Beiträge vor dem ' . format_date($erfassenAb) . ' gelöscht – bezahlte blieben unberührt.');
+        Url::redirect('/admin/einstellungen');
     }
 
     public function save(): void
@@ -54,6 +94,18 @@ final class SettingsController
 
         $year = (int) $values['fee_year'];
         $values['fee_year'] = $year >= 1900 && $year <= 2200 ? (string) $year : (string) date('Y');
+
+        // "Beitraege erfassen ab": Datum validieren (leer = keine Grenze).
+        if ($values['fee_capture_from'] !== '') {
+            $ab = parse_date($values['fee_capture_from']);
+
+            if ($ab === null) {
+                Flash::error('„Beiträge erfassen ab“ ist kein gültiges Datum.');
+                Url::redirect('/admin/einstellungen');
+            }
+
+            $values['fee_capture_from'] = $ab;
+        }
 
         if ($values['reminder_email'] !== '' && !filter_var($values['reminder_email'], FILTER_VALIDATE_EMAIL)) {
             Flash::error('Die Empfängeradresse für die Beitragserinnerung ist keine gültige E-Mail-Adresse.');

@@ -100,6 +100,34 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
                 <p class="field__hint">Vorbelegtes Jahr in den Auswertungen.</p>
             </div>
 
+            <div class="field field--sm">
+                <label for="fee_capture_from">Beiträge erfassen ab</label>
+                <input id="fee_capture_from" name="fee_capture_from" type="date"
+                       value="<?= e($value('fee_capture_from')) ?>">
+                <p class="field__hint">
+                    Vor diesem Datum werden KEINE Beitragsperioden mehr erzeugt –
+                    z. B. beim Umstieg von einer Alt-Verwaltung. Leer = ab
+                    Eintritts-/Beitragsbeginn des Mitglieds. Bezahlte Beiträge
+                    bleiben immer erhalten.
+                </p>
+            </div>
+
+            <?php if (($alteOffene['count'] ?? 0) > 0): ?>
+                <div class="field">
+                    <p class="field__hint" style="color:#c0392b">
+                        <strong><?= (int) $alteOffene['count'] ?> offene Beiträge</strong>
+                        (<?= e(number_format((float) $alteOffene['sum'], 2, ',', '.')) ?> €) liegen
+                        VOR dem <?= e(format_date($value('fee_capture_from'))) ?> und zählen noch
+                        als offen.
+                    </p>
+                    <button class="btn btn--danger btn--sm" type="submit"
+                            form="beitraege-bereinigen"
+                            data-confirm="<?= (int) $alteOffene['count'] ?> offene Beiträge vor dem <?= e(format_date($value('fee_capture_from'))) ?> werden endgültig gelöscht (Summe <?= e(number_format((float) $alteOffene['sum'], 2, ',', '.')) ?> €). Bezahlte Beiträge bleiben erhalten. Fortfahren?">
+                        Offene Beiträge vor diesem Datum löschen
+                    </button>
+                </div>
+            <?php endif; ?>
+
             <div class="field">
                 <label for="fee_options">Wählbare Sektionsbeiträge</label>
                 <input id="fee_options" name="fee_options"
@@ -345,6 +373,10 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
 </form>
 
 <form id="lizenz-pruefen" method="post" action="<?= e(url('/admin/einstellungen/lizenz-pruefen')) ?>">
+    <?= csrf_field() ?>
+</form>
+
+<form id="beitraege-bereinigen" method="post" action="<?= e(url('/admin/einstellungen/beitraege-bereinigen')) ?>">
     <?= csrf_field() ?>
 </form>
 
