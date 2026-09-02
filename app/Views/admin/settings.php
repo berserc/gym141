@@ -297,6 +297,29 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
     </div>
 
         <fieldset class="card">
+            <legend>Cookie-Banner</legend>
+
+            <label class="check">
+                <input type="checkbox" name="cookie_banner" value="1"
+                       <?= $value('cookie_banner', '1') !== '0' ? 'checked' : '' ?>>
+                Cookie-Banner auf der Website anzeigen
+            </label>
+            <p class="field__hint">
+                Erscheint auf allen Seiten der Website und im Mitgliederbereich,
+                bis Besucher gewählt haben („Alle akzeptieren“ / „Nur notwendige“) –
+                die Wahl gilt dann 365 Tage. Der Banner verlinkt automatisch auf die
+                <a href="<?= e(url('/datenschutz')) ?>" target="_blank" rel="noopener">Datenschutzerklärung</a>.
+            </p>
+
+            <div class="field">
+                <label for="cookie_banner_text">Banner-Text</label>
+                <textarea id="cookie_banner_text" name="cookie_banner_text" rows="3"
+                          placeholder="Diese Website verwendet nur technisch notwendige Cookies (z. B. für die Anmeldung). Eingebettete Inhalte Dritter werden erst nach einem Klick geladen."><?= e($value('cookie_banner_text')) ?></textarea>
+                <p class="field__hint">Leer = der Standardtext (siehe Platzhalter).</p>
+            </div>
+        </fieldset>
+
+        <fieldset class="card">
             <legend>E-Mail-Versand (SMTP)</legend>
 
             <p class="muted">

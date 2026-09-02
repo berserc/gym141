@@ -1085,3 +1085,39 @@ a.plan-slot:hover {
     background: rgba(255, 255, 255, .55); padding: 0;
 }
 .slideshow__bullet.is-active { background: #fff; }
+
+/* ---------------------------------------------------------- Cookie-Banner -- */
+.cookie-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 90;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, .35);
+}
+
+.cookie-banner__inner {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: .9rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .8rem 1.2rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cookie-banner__text {
+    margin: 0;
+    font-size: .9rem;
+    color: var(--ink-soft);
+    flex: 1 1 24rem;
+}
+
+.cookie-banner__text a { color: var(--link); }
+
+.cookie-banner__actions {
+    display: flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+}

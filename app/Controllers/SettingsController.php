@@ -21,6 +21,8 @@ final class SettingsController
         'club_tagline', 'home_title', 'home_text', 'fee_year', 'fee_options',
         'fee_capture_from',
         'reminder_email',
+        // Cookie-Banner der Website (Schalter cookie_banner separat als Checkbox)
+        'cookie_banner_text',
         // E-Mail-Versand (SMTP); smtp_pass wird gesondert behandelt (leer = unveraendert)
         'smtp_host', 'smtp_port', 'smtp_user', 'smtp_secure', 'smtp_from', 'smtp_from_name',
         // Task141-Kopplung (Aufgaben-Freigaben fuer Externe)
@@ -118,6 +120,7 @@ final class SettingsController
         // deshalb explizit als '1'/'0' speichern (nicht ueber FIELDS).
         Setting::set('public_site', post_bool('public_site') ? '1' : '0');
         Setting::set('member_area', post_bool('member_area') ? '1' : '0');
+        Setting::set('cookie_banner', post_bool('cookie_banner') ? '1' : '0');
 
         // SMTP-Passwort: leer gelassen = unveraendert (Loeschen per Checkbox).
         $smtpPass = (string) ($_POST['smtp_pass'] ?? '');

@@ -35,5 +35,6 @@
 
     <?= $content ?>
 </main>
+<?php require __DIR__ . '/_cookie-banner.php'; ?>
 </body>
 </html>

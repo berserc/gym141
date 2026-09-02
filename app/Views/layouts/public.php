@@ -114,6 +114,7 @@ $pageTitle = $title !== '' ? $title . ' | ' . $appName : $appName;
         </nav>
     </div>
 </footer>
+<?php require __DIR__ . '/_cookie-banner.php'; ?>
 <script src="<?= e(asset('js/blocks.js')) ?>" defer></script>
 </body>
 </html>

@@ -81,5 +81,6 @@ $mitglied = MemberAuth::member();
         <p><a href="<?= e(url('/')) ?>">Zur Website</a></p>
     </div>
 </footer>
+<?php require __DIR__ . '/_cookie-banner.php'; ?>
 </body>
 </html>
