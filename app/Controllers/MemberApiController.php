@@ -194,6 +194,10 @@ final class MemberApiController
             Database::update('members', (int) $member['id'], $changes);
             unset($changes['updated_at']);
 
+            if (isset($changes['phone'])) {
+                \App\Models\MemberRepo::syncPrimaryPhone((int) $member['id'], (string) $changes['phone']);
+            }
+
             // Fuer Admin und Verwaltung nachvollziehbar (Aenderungs-Feed).
             \App\Core\Audit::logAs(
                 null,

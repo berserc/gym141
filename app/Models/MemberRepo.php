@@ -281,6 +281,110 @@ final class MemberRepo
      *
      * @return list<array<string,mixed>>
      */
+    /**
+     * Telefonnummern eines Mitglieds (primaere zuerst).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function phones(int $memberId): array
+    {
+        try {
+            return Database::all(
+                'SELECT * FROM member_phones WHERE member_id = ?
+                  ORDER BY is_primary DESC, sort_order, id',
+                [$memberId]
+            );
+        } catch (\PDOException) {
+            return []; // Migration noch nicht gelaufen
+        }
+    }
+
+    /**
+     * Telefonnummern komplett neu setzen. Leere Nummern fallen weg; genau
+     * eine Nummer ist primaer (Vorgabe: die erste). Liefert die primaere
+     * Nummer zurueck - sie wird in members.phone gespiegelt, damit alle
+     * bestehenden Anzeigen/Apps/Exporte "die zuerst verwendete" nutzen.
+     *
+     * @param list<string> $labels
+     * @param list<string> $numbers
+     */
+    public static function savePhones(int $memberId, array $labels, array $numbers, int $primaryIndex): string
+    {
+        $zeilen = [];
+
+        foreach ($numbers as $i => $nummer) {
+            $nummer = trim((string) $nummer);
+
+            if ($nummer === '') {
+                continue;
+            }
+
+            $zeilen[] = [
+                'label'   => mb_substr(trim((string) ($labels[$i] ?? '')) ?: 'Privat', 0, 40),
+                'number'  => mb_substr($nummer, 0, 60),
+                'primary' => $i === $primaryIndex,
+            ];
+        }
+
+        // Genau eine primaere Nummer (Vorgabe: die erste Zeile).
+        if ($zeilen !== [] && !array_filter($zeilen, static fn (array $z): bool => $z['primary'])) {
+            $zeilen[0]['primary'] = true;
+        }
+
+        Database::run('DELETE FROM member_phones WHERE member_id = ?', [$memberId]);
+
+        $primaer = '';
+
+        foreach ($zeilen as $sort => $zeile) {
+            Database::insert('member_phones', [
+                'member_id'  => $memberId,
+                'label'      => $zeile['label'],
+                'number'     => $zeile['number'],
+                'is_primary' => $zeile['primary'] ? 1 : 0,
+                'sort_order' => $sort,
+            ]);
+
+            if ($zeile['primary']) {
+                $primaer = $zeile['number'];
+            }
+        }
+
+        return $primaer;
+    }
+
+    /**
+     * members.phone wurde direkt geaendert (Apps/API): die primaere Zeile in
+     * member_phones nachziehen, damit beide Darstellungen uebereinstimmen.
+     */
+    public static function syncPrimaryPhone(int $memberId, string $number): void
+    {
+        try {
+            $number = trim($number);
+
+            if ($number === '') {
+                Database::run('DELETE FROM member_phones WHERE member_id = ? AND is_primary = 1', [$memberId]);
+
+                return;
+            }
+
+            $aktualisiert = Database::run(
+                'UPDATE member_phones SET number = ? WHERE member_id = ? AND is_primary = 1',
+                [$number, $memberId]
+            )->rowCount();
+
+            if ($aktualisiert === 0) {
+                Database::insert('member_phones', [
+                    'member_id'  => $memberId,
+                    'label'      => 'Privat',
+                    'number'     => $number,
+                    'is_primary' => 1,
+                ]);
+            }
+        } catch (\PDOException) {
+            // Migration noch nicht gelaufen - members.phone bleibt fuehrend.
+        }
+    }
+
     public static function guardians(int $memberId): array
     {
         return Database::all(

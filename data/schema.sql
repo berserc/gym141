@@ -1024,3 +1024,18 @@ CREATE TABLE IF NOT EXISTS menu_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_menu_sort ON menu_items(position, sort_order);
+
+-- Telefonnummern je Mitglied: beliebig viele mit freiem Label (Privat,
+-- Buero, Mobil, Notfall ...) und genau einer primaeren Nummer. Die primaere
+-- wird zusaetzlich in members.phone gespiegelt - alle bestehenden Anzeigen,
+-- Apps und Exporte nutzen damit automatisch "die zuerst verwendete" Nummer.
+CREATE TABLE IF NOT EXISTS member_phones (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    label      TEXT    NOT NULL DEFAULT 'Privat',
+    number     TEXT    NOT NULL,
+    is_primary INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_member_phones ON member_phones(member_id, is_primary DESC, sort_order);

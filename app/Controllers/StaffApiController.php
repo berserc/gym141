@@ -333,6 +333,10 @@ final class StaffApiController
             Database::update('members', (int) $member['id'], $changes);
             unset($changes['updated_at']);
 
+            if (isset($changes['phone'])) {
+                \App\Models\MemberRepo::syncPrimaryPhone((int) $member['id'], (string) $changes['phone']);
+            }
+
             // Aenderung fuer Admin und Verwaltung nachvollziehbar machen.
             Audit::logAs(
                 (int) $user['id'],
@@ -495,6 +499,12 @@ final class StaffApiController
             'editable'   => array_intersect($this->rolesOf($user), ['superuser', 'verwaltung', 'sektionsleiter']) !== []
                 ? self::MEMBER_EDITABLE
                 : [],
+            // Alle Nummern (primaere zuerst); 'phone' oben bleibt die primaere.
+            'phones'     => array_map(static fn (array $p): array => [
+                'label'   => (string) $p['label'],
+                'number'  => (string) $p['number'],
+                'primary' => (bool) $p['is_primary'],
+            ], \App\Models\MemberRepo::phones((int) $member['id'])),
             'sections'   => (string) (Database::value(
                 "SELECT GROUP_CONCAT(s.name, ', ')
                    FROM member_sections ms JOIN sections s ON s.id = ms.section_id

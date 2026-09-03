@@ -138,6 +138,7 @@ final class MemberController
             'feePlans'  => FeeRepo::plans(),
             'errors'    => Flash::errors(),
             'fees'      => FeeRepo::entriesForMember($id),
+            'phones'    => MemberRepo::phones($id),
             'guardians' => MemberRepo::guardians($id),
             'wardsOf'   => MemberRepo::wardsOf($id),
             'pauses'    => MemberRepo::pauses($id),
@@ -218,6 +219,20 @@ final class MemberController
         unset($data['section_ids']);
 
         $id = Database::insert('members', $data);
+
+        // Telefonnummern (mehrere, mit Label) - primaere spiegelt nach members.phone.
+        if (isset($_POST['phone_numbers'])) {
+            $primaer = MemberRepo::savePhones(
+                $id,
+                array_map('strval', (array) ($_POST['phone_labels'] ?? [])),
+                array_map('strval', (array) $_POST['phone_numbers']),
+                post_int('phone_primary')
+            );
+
+            if ($primaer !== (string) ($data['phone'] ?? '')) {
+                Database::update('members', $id, ['phone' => $primaer]);
+            }
+        }
 
         // Mitgliedschaften in allen gewaehlten Sektionen anlegen.
         foreach ($sectionIds as $sectionId) {
@@ -483,6 +498,17 @@ final class MemberController
         // Person – beim Bearbeiten bleiben diese Altspalten unberuehrt.
         // Eintritt/Austritt werden dagegen an der Person gepflegt.
         unset($data['section_id'], $data['section_ids'], $data['fee_amount'], $data['fee_category']);
+
+        // Telefonnummern (mehrere, mit Label): die primaere landet gespiegelt
+        // in members.phone und ist damit ueberall "die zuerst verwendete".
+        if (isset($_POST['phone_numbers'])) {
+            $data['phone'] = MemberRepo::savePhones(
+                $id,
+                array_map('strval', (array) ($_POST['phone_labels'] ?? [])),
+                array_map('strval', (array) $_POST['phone_numbers']),
+                post_int('phone_primary')
+            );
+        }
 
         $data['updated_at'] = gmdate('Y-m-d H:i:s');
 

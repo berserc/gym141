@@ -258,6 +258,22 @@ final class Installer
         )");
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_banktx_files ON bank_transaction_files(transaction_id)');
 
+        // Seit 1.23.0: mehrere Telefonnummern je Mitglied (Label + primaer).
+        // Bestehende members.phone wird als primaere Nummer uebernommen.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS member_phones (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id  INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+            label      TEXT    NOT NULL DEFAULT 'Privat',
+            number     TEXT    NOT NULL,
+            is_primary INTEGER NOT NULL DEFAULT 0,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_member_phones ON member_phones(member_id, is_primary DESC, sort_order)');
+        $pdo->exec("INSERT INTO member_phones (member_id, label, number, is_primary)
+                    SELECT id, 'Privat', phone, 1 FROM members
+                     WHERE phone <> ''
+                       AND id NOT IN (SELECT member_id FROM member_phones)");
+
         // Seit 1.21.0: eigene Menuepunkte (Hauptmenue/Footer der Website).
         $pdo->exec("CREATE TABLE IF NOT EXISTS menu_items (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -254,8 +254,62 @@ $disabled = $canEdit ? '' : ' disabled';
             </div>
 
             <div class="field">
-                <label for="phone">Telefon</label>
-                <input id="phone" name="phone" type="tel"<?= $disabled ?> value="<?= e($member['phone']) ?>">
+                <label>Telefonnummern <span class="muted">(primäre wird überall zuerst verwendet)</span></label>
+
+                <datalist id="phone-labels">
+                    <?php foreach (['Privat', 'Mobil', 'Büro', 'Arbeit', 'Notfall', 'Festnetz'] as $vorschlag): ?>
+                        <option value="<?= e($vorschlag) ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
+
+                <div id="phone-rows">
+                    <?php
+                    $telefonZeilen = ($phones ?? []) !== []
+                        ? $phones
+                        : ((string) $member['phone'] !== ''
+                            ? [['label' => 'Privat', 'number' => $member['phone'], 'is_primary' => 1]]
+                            : []);
+                    $telefonZeilen[] = ['label' => '', 'number' => '', 'is_primary' => $telefonZeilen === []];
+                    ?>
+                    <?php foreach ($telefonZeilen as $ti => $tz): ?>
+                        <div class="inline-form phone-row" style="margin-bottom:.35rem">
+                            <input name="phone_labels[]" list="phone-labels" placeholder="Art (Privat, Büro …)"
+                                   style="max-width:10rem"<?= $disabled ?> value="<?= e((string) $tz['label']) ?>">
+                            <input name="phone_numbers[]" type="tel" placeholder="Nummer"<?= $disabled ?>
+                                   class="phone-number" value="<?= e((string) $tz['number']) ?>">
+                            <label class="check" title="Primäre Nummer – wird zuerst verwendet (Anrufe, WhatsApp, Apps)">
+                                <input type="radio" name="phone_primary" value="<?= $ti ?>"<?= $disabled ?>
+                                    <?= !empty($tz['is_primary']) ? 'checked' : '' ?>> primär
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php if ($disabled === ''): ?>
+                    <button type="button" class="linklike" id="phone-add">+ weitere Nummer</button>
+                <?php endif; ?>
+                <p class="field__hint">Nummer leeren = Eintrag wird beim Speichern entfernt.</p>
+
+                <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var knopf = document.getElementById('phone-add');
+
+                    if (!knopf) { return; }
+
+                    knopf.addEventListener('click', function () {
+                        var zeilen  = document.querySelectorAll('#phone-rows .phone-row');
+                        var vorlage = zeilen[zeilen.length - 1].cloneNode(true);
+
+                        vorlage.querySelectorAll('input[type="tel"], input[list]').forEach(function (i) { i.value = ''; });
+
+                        var radio = vorlage.querySelector('input[type="radio"]');
+                        radio.checked = false;
+                        radio.value = String(zeilen.length);
+
+                        document.getElementById('phone-rows').appendChild(vorlage);
+                    });
+                });
+                </script>
             </div>
         </fieldset>
 
