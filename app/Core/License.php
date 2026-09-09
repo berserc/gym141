@@ -144,6 +144,7 @@ final class License
                 'warning'    => $antwort['warning'] ?? null,
                 'features'   => array_values((array) ($antwort['features'] ?? [])),
                 'expires_at' => $antwort['expiresAtUtc'] ?? null,
+                'trial'      => (bool) ($antwort['isTrial'] ?? false),
                 'checked_at' => $jetzt,
                 'ok_at'      => $jetzt,
             ];
@@ -163,6 +164,14 @@ final class License
 
         return (bool) ($state['valid'] ?? false)
             && in_array(self::PRODUCT_CODE, (array) ($state['features'] ?? [self::PRODUCT_CODE]), true);
+    }
+
+    /** Läuft die aktuelle Lizenz als kostenlose 30-Tage-Testphase? */
+    public static function isTrial(): bool
+    {
+        $state = self::check();
+
+        return (bool) ($state['valid'] ?? false) && (bool) ($state['trial'] ?? false);
     }
 
     /**
@@ -235,7 +244,8 @@ final class License
         return sprintf(
             'Das Gratis-Limit von %d aktiven Mitgliedern ist erreicht. '
             . 'Für unbegrenzte Mitglieder gibt es Gym141 Pro auf account.devworld-llc.com – '
-            . 'den Lizenzschlüssel dann unter Einstellungen eintragen. '
+            . 'dort auch 30 Tage kostenlos testbar. '
+            . 'Den Lizenzschlüssel dann unter Einstellungen eintragen. '
             . '(Archivieren ehemaliger Mitglieder schafft ebenfalls Platz.)',
             $limit
         );

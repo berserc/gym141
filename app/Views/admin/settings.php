@@ -185,10 +185,18 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
 
             <p>
                 <?php if (\App\Core\License::isPro()): ?>
-                    <span class="badge badge--ok">Pro aktiv</span>
-                    unbegrenzte Mitglieder
-                    <?php if (($lizenzState['expires_at'] ?? null) !== null): ?>
-                        · verlängert bis <?= e(format_date(substr((string) $lizenzState['expires_at'], 0, 10))) ?>
+                    <?php if (\App\Core\License::isTrial()): ?>
+                        <span class="badge badge--info">Testphase</span>
+                        alle Features freigeschaltet
+                        <?php if (($lizenzState['expires_at'] ?? null) !== null): ?>
+                            · bis <?= e(format_date(substr((string) $lizenzState['expires_at'], 0, 10))) ?>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="badge badge--ok">Pro aktiv</span>
+                        unbegrenzte Mitglieder
+                        <?php if (($lizenzState['expires_at'] ?? null) !== null): ?>
+                            · verlängert bis <?= e(format_date(substr((string) $lizenzState['expires_at'], 0, 10))) ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                     <?php $module = array_diff((array) ($lizenzState['features'] ?? []), [\App\Core\License::PRODUCT_CODE]); ?>
                     <?php if ($module !== []): ?>
@@ -214,7 +222,8 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
                     Mitglieder kostenlos. Für unbegrenzte Mitglieder und Zusatzmodule gibt es
                     Gym141 Pro auf
                     <a href="https://account.devworld-llc.com" target="_blank" rel="noopener">account.devworld-llc.com</a> –
-                    den Schlüssel aus „Meine Lizenzen“ hier eintragen.
+                    dort lässt sich Pro auch <strong>30 Tage kostenlos testen</strong>
+                    (alle Features, einmal pro Konto). Den Schlüssel aus „Meine Lizenzen“ hier eintragen.
                 </p>
             </div>
 
