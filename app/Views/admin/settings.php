@@ -163,6 +163,28 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
             </div>
 
             <div class="field">
+                <label for="event141_url">Event141-Kopplung: Adresse</label>
+                <input id="event141_url" name="event141_url" type="text"
+                       placeholder="https://events.example.org"
+                       value="<?= e($value('event141_url')) ?>">
+                <p class="field__hint">
+                    Mit Event141 meldet ihr Mitglieder direkt von hier zu Turnieren und
+                    Galas an (<a href="<?= e(url('/admin/wettkaempfe')) ?>">Wettkämpfe</a>)
+                    und übernehmt die Ergebnisse in die Erfolge.
+                </p>
+            </div>
+
+            <div class="field">
+                <label for="event141_api_key">Event141-Kopplung: API-Schlüssel</label>
+                <input id="event141_api_key" name="event141_api_key" type="text"
+                       placeholder="ek_…" autocomplete="off"
+                       value="<?= e($value('event141_api_key')) ?>">
+                <p class="field__hint">
+                    Wird in Event141 im Gym-Bereich unter „Gym141“ erzeugt.
+                </p>
+            </div>
+
+            <div class="field">
                 <label for="reminder_email">Empfänger der Beitragserinnerung</label>
                 <input id="reminder_email" name="reminder_email" type="email"
                        value="<?= e($value('reminder_email')) ?>">

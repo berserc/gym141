@@ -445,6 +445,8 @@ CREATE TABLE IF NOT EXISTS member_fights (
     method        TEXT    NOT NULL DEFAULT '',     -- KO, TKO, Punkte, Aufgabe, DQ
     end_round     INTEGER,                         -- Runde der Beendigung
     note          TEXT    NOT NULL DEFAULT '',
+    -- Herkunft bei Uebernahme aus Event141 ("event141:<kampf>:<sportler>"), '' = manuell
+    source_ref    TEXT    NOT NULL DEFAULT '',
     created_by    INTEGER REFERENCES users(id),
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );

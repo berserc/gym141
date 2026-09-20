@@ -146,6 +146,28 @@ beliebiger Reihenfolge eingefügt.
 
 ---
 
+## Wettkämpfe über Event141
+
+Läuft ein Turnier oder eine Gala über **Event141**, meldet ihr eure Mitglieder
+direkt aus Gym141 an – ohne Listen abzutippen – und holt die Ergebnisse zurück.
+
+**Einmal verbinden** (Superuser): In Event141 im Gym-Bereich anmelden (oder das
+Gym dort registrieren), unter „Gym141“ einen **API-Schlüssel** erzeugen und ihn
+zusammen mit der Event141-Adresse unter *Einstellungen* eintragen.
+
+**Anmelden:** Unter *Mitglieder → Wettkämpfe* erscheinen alle Events mit offener
+Anmeldung. Kategorie wählen, Mitglieder anhaken, „Ausgewählte anmelden“.
+Übertragen werden Name, Geburtsdatum, Geschlecht und das zuletzt erfasste
+Gewicht. Der Veranstalter bestätigt die Anmeldung; den Status seht ihr in der
+Liste. Abmelden geht, solange die Anmeldung offen ist.
+
+**Ergebnisse:** Unten auf der Seite stehen alle Kämpfe eurer Mitglieder. Mit
+„Ergebnisse in die Erfolge übernehmen“ entstehen daraus normale Kampf-Einträge
+unter *Erfolge* (Gegner, Klasse, Methode, Runde). Jeder Kampf wird nur einmal
+übernommen – der Knopf lässt sich gefahrlos mehrfach drücken.
+
+Sektionsleitungen sehen und melden nur die Mitglieder ihrer Sektionen; Trainer
+sehen die Seite nur lesend.
 ## Für den Superuser
 
 * **Benutzer** – Konten anlegen, Rolle und Sektionen zuweisen, Passwörter zurücksetzen.

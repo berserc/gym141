@@ -35,6 +35,10 @@ eigene IT haben – alles wird nach der Installation im Browser verwaltet.
 - **Training**: Anwesenheit, Gewichtsverlauf, Leistungsbewertung,
   Leistungstests (Standard + frei definierbar) mit Diagrammen
 - **Erfolge**: Kämpfe/Wettkämpfe je Mitglied mit Links, Fotos und Videos
+- **Wettkämpfe (Event141)**: offene Turniere und Galas aus Event141 anzeigen,
+  Mitglieder direkt anmelden/abmelden (Name, Geburtsdatum, Geschlecht, letztes
+  Gewicht werden übertragen), Ergebnisse per Knopfdruck als Kämpfe in die
+  Erfolge übernehmen – Kopplung per API-Schlüssel in den Einstellungen
 - **Termine**: Kalender mit wiederkehrenden Terminen, Zu-/Absagen der Mitglieder
   (wie eine WhatsApp-Umfrage), Event-Organisation (Aufgaben + To-do-Listen),
   ICS-Export und Kalender-Abo, REST-API

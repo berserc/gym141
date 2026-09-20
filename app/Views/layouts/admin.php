@@ -58,6 +58,7 @@ $nav = [
         ['/admin/anwesenheit', 'Anwesenheit', null, [], 'check'],
         ['/admin/entwicklung', 'Entwicklung', null, [], 'activity'],
         ['/admin/erfolge', 'Erfolge', null, [], 'award'],
+        ['/admin/wettkaempfe', 'Wettkämpfe', null, [], 'flag'],
         ['/admin/auswertung/statistik', 'Statistik', null, [], 'chart'],
         ['/admin/auswertung/gemeinden', 'Gemeinde-Abrechnung', null, [], 'map'],
         ['/admin/auswertung/foerderung', 'Förderung', ['superuser'], [], 'chart'],
@@ -100,7 +101,7 @@ $modeWhitelist = [
     ],
     'trainer' => [
         '/admin', '/admin/mitglieder', '/admin/gruppen', '/admin/anwesenheit',
-        '/admin/entwicklung', '/admin/erfolge', '/admin/termine', '/admin/aufgaben', '/admin/dateien',
+        '/admin/entwicklung', '/admin/erfolge', '/admin/wettkaempfe', '/admin/termine', '/admin/aufgaben', '/admin/dateien',
     ],
 ];
 

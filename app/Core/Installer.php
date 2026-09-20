@@ -194,6 +194,11 @@ final class Installer
             'measured_time' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
+        // Seit 1.25.0: Kaempfe aus Event141 (Herkunft merken, jeder Kampf nur einmal).
+        $this->addColumns($pdo, 'member_fights', [
+            'source_ref' => "TEXT NOT NULL DEFAULT ''",
+        ]);
+
         // Seit 1.10.0: Task141-Freigabe-Link an Orga-Aufgaben.
         $this->addColumns($pdo, 'event_tasks', [
             'task141_url' => "TEXT NOT NULL DEFAULT ''",

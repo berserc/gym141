@@ -27,6 +27,8 @@ final class SettingsController
         'smtp_host', 'smtp_port', 'smtp_user', 'smtp_secure', 'smtp_from', 'smtp_from_name',
         // Task141-Kopplung (Aufgaben-Freigaben fuer Externe)
         'task141_url', 'task141_service_key',
+        // Event141-Kopplung (Wettkampf-Anmeldung, Ergebnisse -> Erfolge)
+        'event141_url', 'event141_api_key',
     ];
 
     public function index(): void

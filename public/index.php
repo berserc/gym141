@@ -310,6 +310,14 @@ $router->post('/api/app/verwaltung/mitglied/{id}', [$staffApi, 'member_update'])
 $router->post('/api/app/verwaltung/mitglied/{id}/einladung', [$staffApi, 'member_invite']);
 $router->get('/api/app/verwaltung/aenderungen', [$staffApi, 'member_changes']);
 
+// Wettkaempfe ueber Event141 (Anmeldung, Ergebnisse -> Erfolge)
+$event141 = new App\Controllers\Event141Controller();
+
+$router->get('/admin/wettkaempfe', [$event141, 'index']);
+$router->post('/admin/wettkaempfe/anmelden', [$event141, 'enter']);
+$router->post('/admin/wettkaempfe/abmelden', [$event141, 'withdraw']);
+$router->post('/admin/wettkaempfe/ergebnisse', [$event141, 'importResults']);
+
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();
 
