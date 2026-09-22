@@ -31,6 +31,7 @@ final class BlockRepo
         'schedule' => ['Wochenplan', 'Der Wochenplan aus der Terminverwaltung – wie auf der Standard-Startseite.'],
         'sections' => ['Trainingsgruppen', 'Kachelübersicht aller veröffentlichten Trainingsgruppen.'],
         'cta'      => ['Aufruf (CTA)', 'Hervorgehobene Box mit Titel, Text und Button – z. B. für das Probetraining.'],
+        'tickets'  => ['Ticketshop (Ticket141)', 'Ticketverkauf aus Ticket141 – als eingebettetes Shop-Widget oder als Button „Tickets kaufen“.'],
     ];
 
     /**

@@ -194,6 +194,19 @@ final class BlockAdminController
                 $cfg['button_url']   = trim(post('button_url'));
                 $cfg['whatsapp']     = post_bool('whatsapp');
                 break;
+
+            case 'tickets':
+                // Event-Kuerzel (Slug) aus Ticket141: nur Kleinbuchstaben, Ziffern, Bindestrich.
+                $cfg['slug']   = (string) preg_replace('/[^a-z0-9\-]/', '', mb_strtolower(trim(post('slug'))));
+                $cfg['mode']   = post('mode') === 'button' ? 'button' : 'embed';
+                $cfg['code']   = trim(post('code'));
+                $cfg['title']  = trim(post('title'));
+                $cfg['height'] = max(200, min(3000, post_int('height', 640) ?: 640));
+
+                if ($cfg['slug'] === '') {
+                    Flash::error('Bitte den Event-Kürzel (Slug) aus Ticket141 angeben – ohne ihn zeigt der Block nichts.');
+                }
+                break;
         }
 
         BlockRepo::saveConfig($id, $cfg);

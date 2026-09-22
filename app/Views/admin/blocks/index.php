@@ -336,6 +336,44 @@ $istStartseite = $pageId === null && $sectionId === null;
                     WhatsApp-Button (nutzt die WhatsApp-Nummer aus den Einstellungen; Button-Ziel wird ignoriert)
                 </label>
 
+            <?php elseif ($block['type'] === 'tickets'): ?>
+                <?php if (!\App\Core\Ticket141Client::urlConfigured()): ?>
+                    <p class="field__hint" style="color:#c0392b">
+                        Es ist noch keine Ticket141-Adresse hinterlegt – der Block bleibt auf der Website
+                        unsichtbar, bis sie unter <a href="<?= e(url('/admin/einstellungen')) ?>">Einstellungen</a> eingetragen ist.
+                    </p>
+                <?php endif; ?>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Event-Kürzel (Slug) in Ticket141 *</label>
+                        <input name="slug" value="<?= e((string) ($cfg['slug'] ?? '')) ?>" maxlength="120"
+                               placeholder="z. B. fight-night-4" pattern="[a-z0-9\-]*" required>
+                        <p class="field__hint">Steht in Ticket141 in der Shop-Adresse: …/t/<strong>kürzel</strong> (siehe auch <a href="<?= e(url('/admin/tickets')) ?>">Tickets</a>).</p>
+                    </div>
+                    <div class="field">
+                        <label>Darstellung</label>
+                        <select name="mode">
+                            <option value="embed" <?= ($cfg['mode'] ?? 'embed') !== 'button' ? 'selected' : '' ?>>Shop-Widget direkt auf der Seite</option>
+                            <option value="button" <?= ($cfg['mode'] ?? '') === 'button' ? 'selected' : '' ?>>Nur Button „Tickets kaufen“ (Link zum Shop)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Überschrift (optional)</label>
+                        <input name="title" value="<?= e((string) ($cfg['title'] ?? '')) ?>" maxlength="150">
+                    </div>
+                    <div class="field">
+                        <label>Zugangscode (optional)</label>
+                        <input name="code" value="<?= e((string) ($cfg['code'] ?? '')) ?>" maxlength="60" autocomplete="off">
+                        <p class="field__hint">Blendet in Ticket141 versteckte Kategorien ein (z. B. VIP).</p>
+                    </div>
+                    <div class="field field--xs">
+                        <label>Starthöhe des Widgets (px)</label>
+                        <input name="height" type="number" min="200" max="3000" step="10"
+                               value="<?= (int) ($cfg['height'] ?? 640) ?>">
+                        <p class="field__hint">Die Höhe passt sich danach automatisch an den Inhalt an.</p>
+                    </div>
+                </div>
+
             <?php endif; ?>
 
             <div class="field field--sm" style="margin-top:.6rem">

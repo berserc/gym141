@@ -59,6 +59,7 @@ $nav = [
         ['/admin/entwicklung', 'Entwicklung', null, [], 'activity'],
         ['/admin/erfolge', 'Erfolge', null, [], 'award'],
         ['/admin/wettkaempfe', 'Wettkämpfe', null, [], 'flag'],
+        ['/admin/tickets', 'Tickets', ['superuser', 'verwaltung', 'kassier'], [], 'tag'],
         ['/admin/auswertung/statistik', 'Statistik', null, [], 'chart'],
         ['/admin/auswertung/gemeinden', 'Gemeinde-Abrechnung', null, [], 'map'],
         ['/admin/auswertung/foerderung', 'Förderung', ['superuser'], [], 'chart'],
@@ -96,7 +97,7 @@ $mode = Auth::mode();
 
 $modeWhitelist = [
     'kassier' => [
-        '/admin', '/admin/mitglieder', '/admin/beitraege', '/admin/auswertung/statistik',
+        '/admin', '/admin/mitglieder', '/admin/beitraege', '/admin/tickets', '/admin/auswertung/statistik',
         '/admin/verein', '/admin/dateien', '/admin/buchhaltung', '/admin/bank', '/admin/buchhaltung/auswertung',
     ],
     'trainer' => [

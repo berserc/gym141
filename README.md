@@ -39,6 +39,10 @@ eigene IT haben – alles wird nach der Installation im Browser verwaltet.
   Mitglieder direkt anmelden/abmelden (Name, Geburtsdatum, Geschlecht, letztes
   Gewicht werden übertragen), Ergebnisse per Knopfdruck als Kämpfe in die
   Erfolge übernehmen – Kopplung per API-Schlüssel in den Einstellungen
+- **Tickets (Ticket141)**: Ticketshop aus Ticket141 per Inhaltsblock auf jeder
+  Seite der Website (eingebettetes Widget oder Button „Tickets kaufen“, optional
+  mit Zugangscode) und Verkaufsübersicht aller Events in der Verwaltung
+  (verkauft, eingelassen, Umsatz, je Kategorie) – Kopplung per `tk_…`-Schlüssel
 - **Termine**: Kalender mit wiederkehrenden Terminen, Zu-/Absagen der Mitglieder
   (wie eine WhatsApp-Umfrage), Event-Organisation (Aufgaben + To-do-Listen),
   ICS-Export und Kalender-Abo, REST-API

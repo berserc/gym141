@@ -168,6 +168,45 @@ unter *Erfolge* (Gegner, Klasse, Methode, Runde). Jeder Kampf wird nur einmal
 
 Sektionsleitungen sehen und melden nur die Mitglieder ihrer Sektionen; Trainer
 sehen die Seite nur lesend.
+
+---
+
+## Tickets verkaufen mit Ticket141
+
+Verkauft ihr Eintrittskarten für eine Gala oder ein Turnier über
+**Ticket141**, holt Gym141 den Shop direkt auf eure Website und zeigt die
+Verkaufszahlen in der Verwaltung – ohne doppelte Pflege.
+
+**Einmal verbinden** (Superuser): In Ticket141 unter *Verwaltung → API &
+Webhooks* einen Schlüssel mit Bereich **read** erzeugen (Name z. B. „Gym141“).
+Adresse und Schlüssel `tk_…` unter *Einstellungen → Ticket141 (Ticketshop)*
+eintragen und **„Speichern + Verbindung prüfen“** drücken – die Meldung sagt
+sofort, ob Ticket141 antwortet. Der Schlüssel wird nach dem Speichern nicht
+mehr angezeigt; das Feld leer lassen heißt „unverändert“.
+
+**Shop auf der Website:** Unter *Seiten → Inhalt* (oder *Startseite
+gestalten*) den Block **Ticketshop (Ticket141)** hinzufügen und den
+Event-Kürzel (Slug) eintragen – er steht in der Shop-Adresse des Events
+(`…/t/kürzel`). Zwei Darstellungen:
+
+* **Shop-Widget** – der komplette Ticketshop erscheint direkt auf der Seite;
+  die Höhe passt sich automatisch an. Die Zahlung (Stripe) und die
+  Ticketseite laufen auf der Ticket141-Adresse.
+* **Nur Button** – ein Button „Tickets kaufen“, der zum Shop verlinkt.
+
+Optional: eine Überschrift und ein **Zugangscode**, der in Ticket141
+versteckte Kategorien (z. B. VIP) freischaltet. Für Widget und Button genügt
+die Ticket141-Adresse; ohne Adresse bleibt der Block auf der Website
+unsichtbar.
+
+**Verkaufszahlen:** Unter *Mitglieder → Tickets* stehen alle Events aus
+Ticket141 mit Termin, Status, verkauften und eingelassenen Tickets und
+Umsatz. „Kategorien“ klappt den Verkauf je Kategorie auf; „Shop“ und
+„Verwaltung“ führen direkt nach Ticket141. Die Seite sehen Superuser,
+Verwaltung und Kassier – verkauft, storniert und gescannt wird in Ticket141.
+
+---
+
 ## Für den Superuser
 
 * **Benutzer** – Konten anlegen, Rolle und Sektionen zuweisen, Passwörter zurücksetzen.

@@ -29,6 +29,9 @@ final class SettingsController
         'task141_url', 'task141_service_key',
         // Event141-Kopplung (Wettkampf-Anmeldung, Ergebnisse -> Erfolge)
         'event141_url', 'event141_api_key',
+        // Ticket141-Kopplung (Ticketshop); ticket141_api_key wird gesondert
+        // behandelt (leer = unveraendert)
+        'ticket141_url',
     ];
 
     public function index(): void
@@ -116,6 +119,9 @@ final class SettingsController
             Url::redirect('/admin/einstellungen');
         }
 
+        // Ticket141-Adresse normalisieren ("tickets.example.org/" -> "https://…").
+        $values['ticket141_url'] = \App\Core\Ticket141Client::normalize($values['ticket141_url']);
+
         Setting::setMany($values);
 
         // Betriebsmodus: Checkboxen fehlen im POST, wenn sie abgehakt sind –
@@ -141,6 +147,15 @@ final class SettingsController
             Setting::set('anthropic_api_key', '');
         } elseif ($apiKey !== '') {
             Setting::set('anthropic_api_key', $apiKey);
+        }
+
+        // Ticket141-Schluessel: leer gelassen = unveraendert, Loeschen per Checkbox.
+        $ticketKey = trim(post('ticket141_api_key'));
+
+        if (post_bool('ticket141_api_key_clear')) {
+            Setting::set('ticket141_api_key', '');
+        } elseif ($ticketKey !== '') {
+            Setting::set('ticket141_api_key', $ticketKey);
         }
 
         // DevWorld-Lizenzschluessel: bei Aenderung sofort gegen den
@@ -175,6 +190,29 @@ final class SettingsController
                 Flash::success('Einstellungen gespeichert und Testmail an ' . $an . ' versendet – bitte Posteingang prüfen.');
             } else {
                 Flash::error('Einstellungen gespeichert, aber: ' . $fehler);
+            }
+
+            Url::redirect('/admin/einstellungen');
+        }
+
+        // "Speichern + Verbindung pruefen" (Ticket141): alles ist gespeichert,
+        // danach ein Ping mit den frischen Einstellungen.
+        if (post('ticket141_check') === '1') {
+            if (!\App\Core\Ticket141Client::configured()) {
+                Flash::error('Einstellungen gespeichert. Für die Verbindungsprüfung bitte Ticket141-Adresse und API-Schlüssel angeben.');
+                Url::redirect('/admin/einstellungen');
+            }
+
+            try {
+                $ping  = (new \App\Core\Ticket141Client())->ping();
+                $key   = (array) ($ping['key'] ?? []);
+                $scope = (string) ($key['scope'] ?? '');
+                Flash::success(
+                    'Einstellungen gespeichert – Ticket141 ' . (string) ($ping['version'] ?? '') . ' antwortet'
+                    . (($key['name'] ?? '') !== '' ? ' (Schlüssel „' . (string) $key['name'] . '“, Bereich ' . $scope . ')' : '') . '.'
+                );
+            } catch (\RuntimeException $e) {
+                Flash::error('Einstellungen gespeichert, aber Ticket141 antwortet nicht: ' . $e->getMessage());
             }
 
             Url::redirect('/admin/einstellungen');

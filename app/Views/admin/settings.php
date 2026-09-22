@@ -328,6 +328,56 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
     </div>
 
         <fieldset class="card">
+            <legend>Ticket141 (Ticketshop)</legend>
+
+            <p class="muted">
+                Mit Ticket141 verkauft ihr Tickets für Galas und Events: Die Verkaufszahlen
+                erscheinen unter <a href="<?= e(url('/admin/tickets')) ?>">Tickets</a>, der Shop
+                kommt per Inhaltsblock „Ticketshop (Ticket141)“ auf jede Seite der Website.
+            </p>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label for="ticket141_url">Ticket141-Adresse</label>
+                    <input id="ticket141_url" name="ticket141_url" type="text"
+                           placeholder="https://tickets.example.org"
+                           value="<?= e($value('ticket141_url')) ?>">
+                    <p class="field__hint">Für Shop-Button und Widget genügt die Adresse.</p>
+                </div>
+                <div class="field">
+                    <label for="ticket141_api_key">
+                        API-Schlüssel
+                        <?php if ($value('ticket141_api_key') !== ''): ?>
+                            <span class="badge badge--ok">hinterlegt (…<?= e(substr($value('ticket141_api_key'), -4)) ?>)</span>
+                        <?php else: ?>
+                            <span class="badge badge--muted">nicht hinterlegt</span>
+                        <?php endif; ?>
+                    </label>
+                    <input id="ticket141_api_key" name="ticket141_api_key" type="password"
+                           autocomplete="off" placeholder="tk_…">
+                    <p class="field__hint">
+                        In Ticket141 unter „Verwaltung → API &amp; Webhooks“ erzeugen (Bereich
+                        <em>read</em> genügt). Leer lassen = unverändert.
+                    </p>
+                    <?php if ($value('ticket141_api_key') !== ''): ?>
+                        <label class="check">
+                            <input type="checkbox" name="ticket141_api_key_clear" value="1">
+                            Gespeicherten Schlüssel löschen
+                        </label>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="field">
+                <button class="btn btn--sm" type="submit" name="ticket141_check" value="1"
+                        title="Speichert ALLE Einstellungen dieser Seite und prüft danach die Verbindung zu Ticket141">
+                    Speichern + Verbindung prüfen
+                </button>
+                <p class="field__hint">Speichert die Einstellungen mit und fragt danach Ticket141 an – es geht nichts verloren.</p>
+            </div>
+        </fieldset>
+
+        <fieldset class="card">
             <legend>Cookie-Banner</legend>
 
             <label class="check">

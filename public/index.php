@@ -318,6 +318,9 @@ $router->post('/admin/wettkaempfe/anmelden', [$event141, 'enter']);
 $router->post('/admin/wettkaempfe/abmelden', [$event141, 'withdraw']);
 $router->post('/admin/wettkaempfe/ergebnisse', [$event141, 'importResults']);
 
+// Tickets ueber Ticket141 (Verkaufsuebersicht; Shop per Inhaltsblock "tickets")
+$router->get('/admin/tickets', [new App\Controllers\Ticket141Controller(), 'index']);
+
 // Erfolge und Wettkaempfe
 $achievements = new App\Controllers\AchievementController();
 
