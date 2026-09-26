@@ -344,3 +344,105 @@
         }
     });
 })();
+
+
+/* ---- Bildbibliothek: Auswahl mit Suche, Tag-Filter, Reihenfolge (Drag & Drop) und Titelbild (★) ---- */
+(function () {
+    document.querySelectorAll('.js-image-picker').forEach(function (box) {
+        var field  = box.getAttribute('data-field');
+        var single = box.classList.contains('image-picker--single');
+        var q      = box.querySelector('.image-picker__q');
+        var only   = box.querySelector('.image-picker__only');
+        var count  = box.querySelector('.image-picker__count');
+        var tagBox = box.querySelector('.image-picker__tags');
+        var selBox = box.querySelector('.image-picker__sel');
+        var items  = Array.prototype.slice.call(box.querySelectorAll('.image-picker__item'));
+        if (!q || items.length === 0) { return; }
+
+        var form   = box.closest('form');
+        var cover  = form ? form.querySelector('[data-cover-input]') : null;
+        var order  = document.createElement('input');
+        order.type = 'hidden'; order.name = field + '_order'; box.appendChild(order);
+
+        var active = {};
+        var counts = {};
+        items.forEach(function (it) {
+            (it.getAttribute('data-tags') || '').split('|').forEach(function (t) { if (t) { counts[t] = (counts[t] || 0) + 1; } });
+        });
+        Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); }).forEach(function (t) {
+            var s = document.createElement('span');
+            s.className = 'tag'; s.innerHTML = t + ' <small>' + counts[t] + '</small>';
+            s.addEventListener('click', function () { active[t] = !active[t]; s.classList.toggle('is-on', !!active[t]); filter(); });
+            tagBox.appendChild(s);
+        });
+
+        function filter() {
+            var words = (q.value || '').toLowerCase().split(/\s+/).filter(Boolean), shown = 0;
+            items.forEach(function (it) {
+                var tags = (it.getAttribute('data-tags') || '').split('|');
+                var text = it.getAttribute('data-text') || '';
+                var ok = true;
+                Object.keys(active).forEach(function (t) { if (active[t] && tags.indexOf(t) < 0) { ok = false; } });
+                words.forEach(function (w) { if (text.indexOf(w) < 0) { ok = false; } });
+                if (only && only.checked && !it.querySelector('input').checked) { ok = false; }
+                it.classList.toggle('is-hidden', !ok);
+                if (ok) { shown++; }
+            });
+            count.textContent = shown + ' von ' + items.length + ' Bildern';
+        }
+
+        function byId(id) { return items.filter(function (it) { return it.getAttribute('data-id') === id; })[0]; }
+        // Startreihenfolge aus data-selected (gespeicherte Reihenfolge), Rest der angehakten dahinter
+        var checkedIds = items.filter(function (it) { return it.querySelector('input').checked; }).map(function (it) { return it.getAttribute('data-id'); });
+        var selected = (box.getAttribute('data-selected') || '').split(',').filter(function (id) { return checkedIds.indexOf(id) >= 0; });
+        checkedIds.forEach(function (id) { if (selected.indexOf(id) < 0) { selected.push(id); } });
+
+        function renderSel() {
+            if (!selBox) { return; }
+            selBox.innerHTML = '';
+            var coverId = cover ? cover.value : '';
+            selected.forEach(function (id, n) {
+                var it = byId(id); if (!it) { return; }
+                var d = document.createElement('div');
+                d.className = 'image-picker__ms' + (coverId === id ? ' is-cover' : ''); d.draggable = true; d.setAttribute('data-id', id);
+                d.innerHTML = '<img src="' + it.querySelector('img').src + '" alt=""><b>' + (n + 1) + '</b>'
+                    + (cover ? '<i class="image-picker__star" title="als Titelbild">★</i>' : '') + '<i class="image-picker__x" title="entfernen">✕</i>';
+                d.querySelector('.image-picker__x').addEventListener('click', function () { it.querySelector('input').checked = false; sync(); });
+                if (cover) {
+                    d.querySelector('.image-picker__star').addEventListener('click', function () { cover.value = cover.value === id ? '' : id; renderSel(); });
+                }
+                d.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', id); d.classList.add('is-dragging'); });
+                d.addEventListener('dragend', function () { d.classList.remove('is-dragging'); });
+                d.addEventListener('dragover', function (e) { e.preventDefault(); });
+                d.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    var from = e.dataTransfer.getData('text/plain');
+                    if (!from || from === id) { return; }
+                    selected.splice(selected.indexOf(from), 1);
+                    selected.splice(selected.indexOf(id), 0, from);
+                    renderSel();
+                });
+                selBox.appendChild(d);
+            });
+            order.value = selected.join(',');
+            if (selected.length === 0) { selBox.innerHTML = '<span class="muted">noch nichts ausgewählt</span>'; }
+        }
+
+        function sync() {
+            items.forEach(function (it) {
+                var id = it.getAttribute('data-id'), on = it.querySelector('input').checked;
+                it.classList.toggle('is-on', on);
+                if (on && selected.indexOf(id) < 0) { selected.push(id); }
+                if (!on && selected.indexOf(id) >= 0) { selected.splice(selected.indexOf(id), 1); }
+            });
+            if (single) { selected = selected.slice(-1); }
+            if (cover && cover.value && selected.indexOf(cover.value) < 0) { cover.value = ''; }
+            renderSel(); filter();
+        }
+
+        box.addEventListener('change', function (e) { if (e.target.matches('.image-picker__item input')) { sync(); } });
+        q.addEventListener('input', filter);
+        if (only) { only.addEventListener('change', filter); }
+        sync();
+    });
+})();

@@ -125,8 +125,10 @@ Verfügbare Blöcke:
   Untertitel und Button. In der Größe „Groß“ füllt er als Seitenauftakt den
   ganzen Bildschirm.
 * **Bild** – einzelnes Bild mit Bildunterschrift; Breite wählbar.
-* **Galerie** – mehrere Bilder auf einmal hochladen; Besucher blättern in
-  einer Großansicht (Lightbox) durch die Bilder.
+* **Galerie** – mehrere Bilder auf einmal hochladen oder aus der
+  *Bildbibliothek* auswählen; zusätzlich lassen sich Tags angeben, dann
+  erscheinen alle Bilder mit diesem Tag automatisch (z. B. „sommerfest 2026“).
+  Besucher blättern in einer Großansicht (Lightbox) durch die Bilder.
 * **Video** – eigenes Video (MP4/WebM) oder ein YouTube-Video. YouTube wird
   erst geladen, wenn Besucher auf „Abspielen“ klicken – vorher fließen keine
   Daten an Google.
@@ -143,6 +145,35 @@ Trainingsgruppen. Wer die Startseite komplett selbst gestalten will, hakt oben
 **„Startseite besteht nur aus den Blöcken unten“** an – dann verschwindet der
 Standardaufbau, und Hero, Trainingsgruppen und Wochenplan werden als Blöcke in
 beliebiger Reihenfolge eingefügt.
+
+---
+
+## Bildbibliothek und Galerien
+
+**Einmal hochladen, überall verwenden.** Unter *Verein → Bilder* liegt die
+Bildbibliothek. Mehrere Fotos auf einmal hochladen – sie werden am Server
+verkleinert (max. 1800 px), Handyfotos richtig gedreht, und eine Vorschau wird
+angelegt. Beim Hochladen gibst du **Tags** mit (mit Komma getrennt, z. B.
+„sommerfest 2026, jugend“) und optional einen Bildtext.
+
+* **Suchen**: Suchfeld (mehrere Wörter = alle müssen passen) und Tag-Wolke;
+  ein Klick auf einen Tag filtert.
+* **Bearbeiten**: bei jedem Bild *Tags / Bildtext* aufklappen und speichern.
+* **Sammelaktionen**: Bilder anhaken, unten *Tags hinzufügen*, *Tags
+  entfernen* oder *Löschen* wählen. Löschen fragt nach und entfernt das Bild
+  auch aus allen Galerien und Blöcken.
+
+**Galerien** (*Verein → Galerien*) sind benannte Bildersammlungen mit eigener
+Seite unter `/galerie/<kürzel>`: Titel, Text, dann Bilder aus der Bibliothek
+auswählen – erst nach Tag filtern, anhaken, unten die Reihenfolge per Ziehen
+festlegen und mit ★ ein Titelbild bestimmen. Die Übersicht aller sichtbaren
+Galerien liegt unter `/galerie`; trag sie unter *System → Menü* als Menüpunkt
+ein, damit Besucher sie finden.
+
+> Die Bildbibliothek ist etwas anderes als die *Dateiablage* (Verein →
+> Dateien): Dort liegen Dokumente für die Verwaltung, nicht öffentlich.
+> Bilder in der Bibliothek sind für die Website gedacht und öffentlich
+> abrufbar.
 
 ---
 

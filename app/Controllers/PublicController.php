@@ -173,6 +173,35 @@ final class PublicController
         echo '</urlset>' . "\n";
     }
 
+    /** Uebersicht aller sichtbaren Galerien (/galerie) */
+    public function galleries(): void
+    {
+        View::display('public/galleries', [
+            'title'      => 'Galerie',
+            'galleries'  => \App\Models\GalleryRepo::all(true),
+            'activePage' => 'galerie',
+        ]);
+    }
+
+    /** @param array<string,string> $args */
+    public function gallery(array $args): void
+    {
+        $gallery = \App\Models\GalleryRepo::findBySlug((string) ($args['slug'] ?? ''));
+        if ($gallery === null) {
+            $this->notFound();
+            return;
+        }
+        $id = (int) $gallery['id'];
+
+        View::display('public/gallery', [
+            'title'      => (string) $gallery['title'],
+            'gallery'    => $gallery,
+            'images'     => \App\Models\GalleryRepo::images($id),
+            'others'     => array_values(array_filter(\App\Models\GalleryRepo::all(true), static fn (array $g): bool => (int) $g['id'] !== $id)),
+            'activePage' => 'galerie',
+        ]);
+    }
+
     public function notFound(): void
     {
         http_response_code(404);

@@ -199,6 +199,9 @@ final class BlockRepo
 
         if (is_array($config['images'] ?? null)) {
             foreach ($config['images'] as &$bild) {
+                if ((int) ($bild['image_id'] ?? 0) > 0) {
+                    continue; // Bibliotheksbild: nur Verweis, nicht kopieren
+                }
                 if (is_string($bild['file'] ?? null) && $bild['file'] !== '') {
                     $bild['file'] = self::copyUpload((string) $bild['file']);
                 }

@@ -139,6 +139,7 @@ final class BlockAdminController
                 $spalten        = (int) post('columns', '3');
                 $cfg['columns'] = in_array($spalten, [2, 3, 4], true) ? $spalten : 3;
                 $cfg['images']  = $this->galerieBilder($id, is_array($cfg['images'] ?? null) ? $cfg['images'] : []);
+                $cfg['library_tags'] = \App\Models\ImageRepo::parseTags(post('library_tags'));
                 break;
 
             case 'slideshow':
@@ -291,12 +292,26 @@ final class BlockAdminController
         $captions  = (array) ($_POST['captions'] ?? []);
         $entfernen = (array) ($_POST['remove'] ?? []);
         $ergebnis  = [];
+        $bibliothekCaptions = [];
+        $bibliothekWeg      = [];
 
         foreach ($bisher as $i => $bild) {
             $datei = (string) ($bild['file'] ?? '');
 
-            if (isset($entfernen[$i])) {
-                Upload::delete($datei);
+            $ausBibliothek = (int) ($bild['image_id'] ?? 0) > 0;
+
+            if (isset($entfernen[$i]) || $ausBibliothek) {
+                // Eigene Uploads werden beim Entfernen geloescht; Bibliotheksbilder nur ausgehaengt
+                // (sie werden unten aus der aktuellen Auswahl neu aufgebaut).
+                if (!$ausBibliothek && isset($entfernen[$i])) {
+                    Upload::delete($datei);
+                }
+                if ($ausBibliothek && !isset($entfernen[$i])) {
+                    $bibliothekCaptions[(int) $bild['image_id']] = trim((string) ($captions[$i] ?? ($bild['caption'] ?? '')));
+                }
+                if ($ausBibliothek && isset($entfernen[$i])) {
+                    $bibliothekWeg[] = (int) $bild['image_id'];
+                }
                 continue;
             }
 
@@ -325,6 +340,17 @@ final class BlockAdminController
                     $ergebnis[] = ['file' => $pfad, 'caption' => ''];
                 }
             }
+        }
+
+        // Bilder aus der Bildbibliothek (Picker library_images[] + Reihenfolge): nur Verweise, keine Kopien.
+        $gewaehlt = array_values(array_diff(GalleryAdminController::pickedIds('library_images'), $bibliothekWeg));
+        foreach (\App\Models\ImageRepo::byIds($gewaehlt) as $img) {
+            $ergebnis[] = [
+                'file'     => (string) $img['file'],
+                'thumb'    => (string) $img['thumb'],
+                'caption'  => $bibliothekCaptions[(int) $img['id']] ?? (string) $img['caption'],
+                'image_id' => (int) $img['id'],
+            ];
         }
 
         return $ergebnis;

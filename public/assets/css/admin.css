@@ -1024,3 +1024,49 @@ a.stat:hover { border-color: var(--gold-text); background: var(--gold-soft); }
 }
 .block-griff:active { cursor: grabbing; }
 .block-card--gezogen { opacity: .45; outline: 2px dashed var(--gold); }
+
+
+/* ---- Bildbibliothek + Bild-Picker ---- */
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.75rem; }
+.tag-cloud--sm { margin-top: 0; }
+.tag { display: inline-block; font-size: 0.78rem; line-height: 1.4; padding: 0.1rem 0.6rem; border-radius: 999px; border: 1px solid var(--line, #d9d4c7); background: var(--bg-soft, #f6f4ee); color: inherit; text-decoration: none; cursor: pointer; user-select: none; }
+.tag:hover, .tag.is-on { border-color: var(--gold, #c9a227); color: var(--gold-text, #8a6d13); }
+.tag small { opacity: 0.6; margin-left: 0.2rem; }
+.tag-cloud--sm .tag { font-size: 0.7rem; padding: 0 0.5rem; cursor: default; }
+
+.image-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.85rem; margin-top: 0.75rem; }
+.image-lib__item { padding: 0; overflow: hidden; }
+.image-lib__pic { display: block; position: relative; aspect-ratio: 4 / 3; background: #eee; cursor: pointer; }
+.image-lib__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-lib__pic input { position: absolute; top: 0.5rem; left: 0.5rem; width: 1.25rem; height: 1.25rem; z-index: 2; }
+.image-lib__size { position: absolute; right: 0.4rem; top: 0.4rem; font-size: 0.68rem; background: rgba(0,0,0,0.6); color: #fff; padding: 0.05rem 0.4rem; border-radius: 4px; }
+.image-lib__item:has(input:checked) { outline: 2px solid var(--gold, #c9a227); }
+.image-lib__body { padding: 0.55rem 0.7rem 0.7rem; font-size: 0.82rem; display: grid; gap: 0.3rem; }
+.image-lib__cap { color: var(--ink, #222); }
+.image-lib__meta { font-size: 0.7rem; }
+.image-lib__edit { display: grid; gap: 0.35rem; margin-top: 0.35rem; }
+.image-lib__edit input { width: 100%; font-size: 0.8rem; }
+
+.image-picker { border: 1px solid var(--line, #d9d4c7); border-radius: 8px; padding: 0.7rem; margin-top: 0.5rem; background: var(--bg-soft, #f9f8f4); }
+.image-picker__bar { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; }
+.image-picker__bar input[type=search] { flex: 1; min-width: 220px; }
+.image-picker__bar .check { margin: 0; white-space: nowrap; }
+.image-picker__tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.image-picker__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 0.45rem; margin-top: 0.6rem; max-height: 380px; overflow: auto; padding: 2px; }
+.image-picker__item { position: relative; display: block; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 2px solid var(--line, #d9d4c7); cursor: pointer; background: #eee; }
+.image-picker__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-picker__item input { position: absolute; top: 0.3rem; left: 0.3rem; width: 1.1rem; height: 1.1rem; z-index: 2; }
+.image-picker__item.is-on { border-color: var(--gold, #c9a227); box-shadow: 0 0 0 1px var(--gold, #c9a227); }
+.image-picker__item.is-hidden { display: none; }
+.image-picker__cap { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.62rem; padding: 0.1rem 0.35rem; background: rgba(0,0,0,0.6); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.image-picker__order { margin-top: 0.6rem; font-size: 0.8rem; }
+.image-picker__sel { display: flex; flex-wrap: wrap; gap: 0.35rem; min-height: 2rem; margin-top: 0.3rem; }
+.image-picker__ms { position: relative; width: 64px; height: 64px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line, #d9d4c7); cursor: grab; }
+.image-picker__ms img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-picker__ms b { position: absolute; left: 3px; top: 2px; font-size: 0.62rem; background: rgba(0,0,0,0.7); color: #fff; padding: 0 4px; border-radius: 3px; }
+.image-picker__ms i { position: absolute; font-style: normal; width: 16px; height: 16px; font-size: 0.68rem; line-height: 16px; text-align: center; border-radius: 50%; color: #fff; cursor: pointer; }
+.image-picker__x { right: 2px; top: 1px; background: #b3261e; }
+.image-picker__star { right: 2px; bottom: 1px; background: rgba(0,0,0,0.55); }
+.image-picker__ms.is-cover { outline: 2px solid var(--gold, #c9a227); }
+.image-picker__ms.is-cover .image-picker__star { background: var(--gold, #c9a227); color: #222; }
+.image-picker__ms.is-dragging { opacity: 0.4; }

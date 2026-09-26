@@ -16,6 +16,10 @@ eigene IT haben – alles wird nach der Installation im Browser verwaltet.
   Blöcken zusammensetzen – Text, Hero (Bild/Video), Bild, Galerie mit Lightbox,
   Video (eigenes oder YouTube, erst nach Klick geladen), Wochenplan,
   Trainingsgruppen, CTA/WhatsApp-Button; sortier-, duplizier- und ausblendbar
+- **Bildbibliothek + Galerien** (seit 1.27): Bilder einmal hochladen (automatisch
+  verkleinert, EXIF-gedreht), mit mehreren Tags verschlagworten, im Backend suchen
+  und auswählen; Galerien mit eigener Seite `/galerie/<kürzel>` und Lightbox; der
+  Galerie-Block zieht Bilder aus der Bibliothek – fest ausgewählt oder per Tag
 - Eine Seite je Trainingsgruppe: Texte (Richtext-Editor), Bilder, Trainer-Kontakte,
   Trainingszeiten (automatisch aus dem Wochenplan)
 - Frei anlegbare Seiten (Impressum, Datenschutz, …)

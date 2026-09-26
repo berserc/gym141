@@ -108,6 +108,8 @@ if ($publicSite) {
     $router->get('/sportart/{slug}', [$public, 'legacySection']);   // alte Drupal-URLs
     $router->get('/sportarten', static fn () => App\Core\Url::redirect('/'));
     $router->get('/sitemap.xml', [$public, 'sitemap']);
+    $router->get('/galerie', [$public, 'galleries']);
+    $router->get('/galerie/{slug}', [$public, 'gallery']);
 } else {
     // Nur Verwaltung: die Startseite fuehrt direkt zur Anmeldung.
     $router->get('/', static fn () => App\Core\Url::redirect('/admin'));
@@ -384,6 +386,21 @@ $router->get('/admin/seiten', [$pages, 'index']);
 
 // Inhaltsbloecke ("Paragraphs"): {page} = 0 steht fuer die Startseite.
 $bloecke = new App\Controllers\BlockAdminController();
+$bilder  = new App\Controllers\ImageLibraryController();
+$galerien = new App\Controllers\GalleryAdminController();
+
+// Bildbibliothek + Galerien (seit 1.27.0)
+$router->get('/admin/bilder',                    [$bilder, 'index']);
+$router->post('/admin/bilder/hochladen',         [$bilder, 'upload']);
+$router->post('/admin/bilder/sammel',            [$bilder, 'bulk']);
+$router->post('/admin/bilder/{id}',              [$bilder, 'update']);
+$router->get('/admin/galerien',                  [$galerien, 'index']);
+$router->get('/admin/galerien/neu',              [$galerien, 'create']);
+$router->post('/admin/galerien',                 [$galerien, 'store']);
+$router->get('/admin/galerien/{id}',             [$galerien, 'edit']);
+$router->post('/admin/galerien/{id}',            [$galerien, 'update']);
+$router->post('/admin/galerien/{id}/umschalten', [$galerien, 'toggle']);
+$router->post('/admin/galerien/{id}/loeschen',   [$galerien, 'destroy']);
 
 $router->get('/admin/inhalt/{page}', [$bloecke, 'index']);
 $router->post('/admin/inhalt/{page}/neu', [$bloecke, 'store']);

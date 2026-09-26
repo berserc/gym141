@@ -194,6 +194,38 @@ final class Installer
             'measured_time' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
+        // Seit 1.27.0: Bildbibliothek mit Tags + Galerien.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS library_images (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            file        TEXT    NOT NULL,
+            thumb       TEXT    NOT NULL DEFAULT '',
+            width       INTEGER NOT NULL DEFAULT 0,
+            height      INTEGER NOT NULL DEFAULT 0,
+            caption     TEXT    NOT NULL DEFAULT '',
+            tags        TEXT    NOT NULL DEFAULT '',
+            orig_name   TEXT    NOT NULL DEFAULT '',
+            uploaded_by INTEGER,
+            created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_library_images_created ON library_images(created_at DESC)');
+        $pdo->exec("CREATE TABLE IF NOT EXISTS galleries (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            slug           TEXT    NOT NULL UNIQUE,
+            title          TEXT    NOT NULL,
+            text           TEXT    NOT NULL DEFAULT '',
+            cover_image_id INTEGER REFERENCES library_images(id) ON DELETE SET NULL,
+            published      INTEGER NOT NULL DEFAULT 1,
+            sort_order     INTEGER NOT NULL DEFAULT 0,
+            created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+            updated_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS gallery_images (
+            gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE,
+            image_id   INTEGER NOT NULL REFERENCES library_images(id) ON DELETE CASCADE,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (gallery_id, image_id)
+        )");
+
         // Seit 1.25.0: Kaempfe aus Event141 (Herkunft merken, jeder Kampf nur einmal).
         $this->addColumns($pdo, 'member_fights', [
             'source_ref' => "TEXT NOT NULL DEFAULT ''",

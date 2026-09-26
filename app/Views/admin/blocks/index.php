@@ -167,11 +167,13 @@ $istStartseite = $pageId === null && $sectionId === null;
                 </div>
             <?php elseif ($block['type'] === 'gallery'): ?>
                 <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>
+                <?php if (!isset($libImages)) { try { $libImages = \App\Models\ImageRepo::search(); } catch (\Throwable) { $libImages = []; } } ?>
                 <?php if ($bilder !== []): ?>
                     <div class="gallery-admin">
                         <?php foreach ($bilder as $gi => $gBild): ?>
                             <div class="gallery-admin__item">
-                                <img src="<?= e(upload_url((string) $gBild['file'])) ?>" alt="">
+                                <img src="<?= e(upload_url((string) ($gBild['thumb'] ?? $gBild['file']))) ?>" alt="">
+                                <?php if ((int) ($gBild['image_id'] ?? 0) > 0): ?><span class="badge badge--muted" title="aus der Bildbibliothek – Entfernen hängt es nur aus">Bibliothek</span><?php endif; ?>
                                 <input name="captions[<?= $gi ?>]" value="<?= e((string) ($gBild['caption'] ?? '')) ?>"
                                        placeholder="Bildunterschrift" maxlength="200">
                                 <label class="check">
@@ -195,6 +197,19 @@ $istStartseite = $pageId === null && $sectionId === null;
                         </select>
                     </div>
                 </div>
+                <div class="field">
+                    <label>Alle Bilder mit diesen Tags automatisch anzeigen (Komma; leer = aus)</label>
+                    <input name="library_tags" value="<?= e(implode(', ', (array) ($cfg['library_tags'] ?? []))) ?>" placeholder="z. B. sommerfest 2026">
+                    <p class="field__hint">Neue Bilder mit diesem Tag erscheinen hier von selbst – ideal für „alles vom Sommerfest“.</p>
+                </div>
+                <details class="field">
+                    <summary class="linklike">Bilder aus der Bildbibliothek auswählen</summary>
+                    <?php
+                    $pickerField = 'library_images'; $pickerImages = $libImages; $pickerSingle = false;
+                    $pickerSelected = array_values(array_filter(array_map(static fn (array $b): int => (int) ($b['image_id'] ?? 0), $bilder)));
+                    require dirname(__DIR__) . '/partials/_image-picker.php';
+                    ?>
+                </details>
 
             <?php elseif ($block['type'] === 'slideshow'): ?>
                 <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>

@@ -1041,3 +1041,40 @@ CREATE TABLE IF NOT EXISTS member_phones (
 );
 
 CREATE INDEX IF NOT EXISTS idx_member_phones ON member_phones(member_id, is_primary DESC, sort_order);
+
+
+-- ---- Bildbibliothek + Galerien (seit 1.27.0) --
+-- tags: kleingeschrieben als ",tag1,tag2," – Suche per LIKE, keine Zwischentabelle.
+CREATE TABLE IF NOT EXISTS library_images (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    file        TEXT    NOT NULL,
+    thumb       TEXT    NOT NULL DEFAULT '',
+    width       INTEGER NOT NULL DEFAULT 0,
+    height      INTEGER NOT NULL DEFAULT 0,
+    caption     TEXT    NOT NULL DEFAULT '',
+    tags        TEXT    NOT NULL DEFAULT '',
+    orig_name   TEXT    NOT NULL DEFAULT '',
+    uploaded_by INTEGER,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_library_images_created ON library_images(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS galleries (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug           TEXT    NOT NULL UNIQUE,
+    title          TEXT    NOT NULL,
+    text           TEXT    NOT NULL DEFAULT '',
+    cover_image_id INTEGER REFERENCES library_images(id) ON DELETE SET NULL,
+    published      INTEGER NOT NULL DEFAULT 1,
+    sort_order     INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS gallery_images (
+    gallery_id INTEGER NOT NULL REFERENCES galleries(id) ON DELETE CASCADE,
+    image_id   INTEGER NOT NULL REFERENCES library_images(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (gallery_id, image_id)
+);
