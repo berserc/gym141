@@ -194,6 +194,30 @@ final class Installer
             'measured_time' => "TEXT NOT NULL DEFAULT ''",
         ]);
 
+        // Seit 1.28.0: Trainingseinheiten aus der Mitglieder-App (Herzfrequenz + GPS als JSON).
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS member_workouts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id   INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    uid         TEXT    NOT NULL,
+    type        TEXT    NOT NULL DEFAULT '',
+    title       TEXT    NOT NULL DEFAULT '',
+    exercise    TEXT    NOT NULL DEFAULT '',
+    note        TEXT    NOT NULL DEFAULT '',
+    started_at  TEXT    NOT NULL,
+    duration_s  INTEGER NOT NULL DEFAULT 0,
+    distance_m  INTEGER NOT NULL DEFAULT 0,
+    avg_hr      INTEGER,
+    max_hr      INTEGER,
+    device      TEXT    NOT NULL DEFAULT '',
+    data        TEXT    NOT NULL DEFAULT '{}',
+    source      TEXT    NOT NULL DEFAULT 'app',
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (member_id, uid)
+);
+CREATE INDEX IF NOT EXISTS idx_workouts_member ON member_workouts(member_id, started_at DESC);
+SQL);
+
         // Seit 1.27.0: Bildbibliothek mit Tags + Galerien.
         $pdo->exec("CREATE TABLE IF NOT EXISTS library_images (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1078,3 +1078,27 @@ CREATE TABLE IF NOT EXISTS gallery_images (
     sort_order INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (gallery_id, image_id)
 );
+
+
+-- ---- Trainingseinheiten aus der Mitglieder-App (seit 1.28.0) --
+-- data = komplette Einheit als JSON (Version 1: hr[{t,bpm}], track[{t,lat,lon,alt,acc,v}]); Kopfdaten fuer Listen.
+CREATE TABLE IF NOT EXISTS member_workouts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id   INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    uid         TEXT    NOT NULL,
+    type        TEXT    NOT NULL DEFAULT '',
+    title       TEXT    NOT NULL DEFAULT '',
+    exercise    TEXT    NOT NULL DEFAULT '',
+    note        TEXT    NOT NULL DEFAULT '',
+    started_at  TEXT    NOT NULL,
+    duration_s  INTEGER NOT NULL DEFAULT 0,
+    distance_m  INTEGER NOT NULL DEFAULT 0,
+    avg_hr      INTEGER,
+    max_hr      INTEGER,
+    device      TEXT    NOT NULL DEFAULT '',
+    data        TEXT    NOT NULL DEFAULT '{}',
+    source      TEXT    NOT NULL DEFAULT 'app',
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (member_id, uid)
+);
+CREATE INDEX IF NOT EXISTS idx_workouts_member ON member_workouts(member_id, started_at DESC);

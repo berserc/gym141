@@ -333,6 +333,103 @@ final class MemberApiController
         $this->json(['ok' => true, 'deleted' => $geloescht]);
     }
 
+    // ------------------------------------------------------------- Training --
+
+    /** Trainingseinheiten (Kopfdaten) – die Rohdaten (Herzfrequenz, Strecke) liegen in data und werden nur einzeln geliefert. */
+    public function workouts_get(): void
+    {
+        [, $member] = $this->requireToken();
+        $uid = trim((string) ($_GET['uid'] ?? ''));
+
+        if ($uid !== '') {
+            $row = Database::one('SELECT * FROM member_workouts WHERE member_id = ? AND uid = ?', [(int) $member['id'], $uid]);
+            if ($row === null) {
+                $this->json(['error' => 'Nicht gefunden.'], 404);
+            }
+            $this->json(['workout' => json_decode((string) $row['data'], true) ?: []]);
+        }
+
+        $rows = Database::all(
+            'SELECT uid, type, title, exercise, started_at, duration_s, distance_m, avg_hr, max_hr, device
+               FROM member_workouts WHERE member_id = ? ORDER BY started_at DESC',
+            [(int) $member['id']]
+        );
+        $this->json(['entries' => $rows]);
+    }
+
+    /**
+     * Trainingseinheiten der App uebermitteln (Spiegel-Semantik wie beim Gewicht): die
+     * gesendete Liste ersetzt alle Eintraege mit source='app'. Jede Einheit kommt als
+     * komplettes JSON (Version 1: hr[], track[]) und wird unveraendert in data abgelegt.
+     */
+    public function workouts_put(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $entries = (array) ($this->body()['workouts'] ?? []);
+
+        if (count($entries) > 500) {
+            $this->json(['error' => 'Zu viele Einheiten.'], 422);
+        }
+
+        $sauber = [];
+
+        foreach ($entries as $w) {
+            if (!is_array($w)) {
+                continue;
+            }
+            $uid   = preg_replace('/[^a-z0-9]/i', '', (string) ($w['id'] ?? ''));
+            $start = date_create((string) ($w['startedAt'] ?? ''));
+
+            if ($uid === '' || $start === false) {
+                $this->json(['error' => 'Ungültige Einheit (id oder startedAt fehlt).'], 422);
+            }
+            if (strlen(json_encode($w) ?: '') > 4 * 1024 * 1024) {
+                $this->json(['error' => 'Einheit zu groß (max. 4 MB).'], 422);
+            }
+
+            $sauber[] = [
+                'uid'        => $uid,
+                'type'       => mb_substr((string) ($w['type'] ?? ''), 0, 30),
+                'title'      => mb_substr(trim((string) ($w['title'] ?? '')), 0, 120),
+                'exercise'   => mb_substr(trim((string) ($w['exercise'] ?? '')), 0, 200),
+                'note'       => mb_substr(trim((string) ($w['note'] ?? '')), 0, 2000),
+                'started_at' => $start->format('Y-m-d H:i:s'),
+                'duration_s' => (int) round((float) ($w['durationS'] ?? 0)),
+                'distance_m' => (int) round((float) ($w['distanceM'] ?? 0)),
+                'avg_hr'     => isset($w['avgHr']) ? (int) $w['avgHr'] : null,
+                'max_hr'     => isset($w['maxHr']) ? (int) $w['maxHr'] : null,
+                'device'     => mb_substr((string) ($w['device'] ?? ''), 0, 80),
+                'data'       => json_encode($w, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ];
+        }
+
+        $memberId = (int) $member['id'];
+
+        Database::transaction(static function () use ($memberId, $sauber): void {
+            Database::run("DELETE FROM member_workouts WHERE member_id = ? AND source = 'app'", [$memberId]);
+
+            foreach ($sauber as $row) {
+                Database::insert('member_workouts', $row + ['member_id' => $memberId, 'source' => 'app']);
+            }
+        });
+
+        $this->json(['ok' => true, 'count' => count($sauber)]);
+    }
+
+    /** Widerruf der Freigabe: alle von der App uebermittelten Einheiten loeschen. */
+    public function workouts_delete(): void
+    {
+        [, $member] = $this->requireToken();
+
+        $geloescht = Database::run(
+            "DELETE FROM member_workouts WHERE member_id = ? AND source = 'app'",
+            [(int) $member['id']]
+        )->rowCount();
+
+        $this->json(['ok' => true, 'deleted' => $geloescht]);
+    }
+
     // --------------------------------------------------------------- Intern --
 
     /**

@@ -130,3 +130,6 @@ Für das Deployment per FTPS liegt unter `deploy/` ein PowerShell-Skript
 ## Lizenz
 
 MIT – siehe [LICENSE](LICENSE).
+- **Trainingseinheiten aus der App** (seit 1.28): die Mitglieder-App zeichnet Herzfrequenz
+  (Bluetooth-Brustgurt/Uhr) und GPS-Strecke auf; mit Freigabe des Mitglieds landen die
+  Einheiten unter `/api/app/training` (Tabelle `member_workouts`, Rohdaten als JSON)
