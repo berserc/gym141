@@ -1070,3 +1070,20 @@ a.stat:hover { border-color: var(--gold-text); background: var(--gold-soft); }
 .image-picker__ms.is-cover { outline: 2px solid var(--gold, #c9a227); }
 .image-picker__ms.is-cover .image-picker__star { background: var(--gold, #c9a227); color: #222; }
 .image-picker__ms.is-dragging { opacity: 0.4; }
+
+
+/* ---- Upload per Drag & Drop ---- */
+.dropzone { border: 2px dashed var(--line, #d9d4c7); border-radius: 10px; padding: 1rem; text-align: center; cursor: pointer; background: var(--bg-soft, #f9f8f4); transition: border-color .15s, background .15s; }
+.dropzone.is-over { border-color: var(--gold, #c9a227); background: rgba(201, 162, 39, 0.08); }
+.dropzone__text { display: block; font-weight: 600; }
+.dropzone__text small { display: block; font-weight: 400; color: var(--ink-soft, #666); }
+.dropzone__input { display: block; margin: .6rem auto 0; font-size: .8rem; }
+.dropzone__list { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin-top: .6rem; }
+.dropzone__file { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; background: var(--card, #fff); border: 1px solid var(--line, #d9d4c7); border-radius: 6px; padding: .15rem .4rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dropzone__file img { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; }
+.dropzone__count { width: 100%; font-size: .75rem; color: var(--ink-soft, #666); }
+/* ---- Sortieren per Drag & Drop ---- */
+.gallery-admin[data-sortable] .gallery-admin__item { position: relative; cursor: grab; }
+.gallery-admin[data-sortable] .gallery-admin__item.is-dragging { opacity: .4; }
+.gallery-admin__no { position: absolute; left: .4rem; top: .4rem; background: rgba(0,0,0,.65); color: #fff; font-size: .7rem; padding: .05rem .4rem; border-radius: 4px; pointer-events: none; }
+.gallery-admin__hint { color: var(--ink-soft, #666); font-size: .8rem; margin: -.4rem 0 .6rem; }

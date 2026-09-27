@@ -446,3 +446,77 @@
         sync();
     });
 })();
+
+
+/* ---- Bilder per Drag & Drop hochladen: jedes Datei-Feld mit accept="image/*" bekommt eine Ablagefläche ---- */
+(function () {
+    document.querySelectorAll('input[type=file][accept*="image"]').forEach(function (input) {
+        if (input.closest('.dropzone')) { return; }
+        var zone = document.createElement('div');
+        zone.className = 'dropzone';
+        zone.innerHTML = '<span class="dropzone__text">' + (input.multiple ? 'Bilder hierher ziehen' : 'Bild hierher ziehen') + ' <small>oder klicken zum Auswählen</small></span><div class="dropzone__list"></div>';
+        input.parentNode.insertBefore(zone, input);
+        zone.appendChild(input);
+        input.classList.add('dropzone__input');
+
+        var list = zone.querySelector('.dropzone__list');
+        function render() {
+            list.innerHTML = '';
+            var files = Array.prototype.slice.call(input.files || []);
+            if (!files.length) { zone.classList.remove('has-files'); return; }
+            zone.classList.add('has-files');
+            files.slice(0, 40).forEach(function (f) {
+                var item = document.createElement('span'); item.className = 'dropzone__file';
+                if (f.type.indexOf('image/') === 0) { var img = document.createElement('img'); img.src = URL.createObjectURL(f); item.appendChild(img); }
+                item.appendChild(document.createTextNode(f.name));
+                list.appendChild(item);
+            });
+            var info = document.createElement('span'); info.className = 'dropzone__count';
+            var mb = files.reduce(function (s, f) { return s + f.size; }, 0) / 1048576;
+            info.textContent = files.length + ' Datei(en), ' + mb.toFixed(1) + ' MB';
+            list.appendChild(info);
+        }
+        zone.addEventListener('click', function (e) { if (e.target === input) { return; } input.click(); });
+        ['dragenter', 'dragover'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('is-over'); }); });
+        ['dragleave', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.remove('is-over'); }); });
+        zone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            var dropped = Array.prototype.slice.call(e.dataTransfer.files || []).filter(function (f) { return f.type.indexOf('image/') === 0; });
+            if (!dropped.length) { return; }
+            var dt = new DataTransfer();
+            if (input.multiple) { Array.prototype.slice.call(input.files || []).forEach(function (f) { dt.items.add(f); }); }
+            dropped.slice(0, input.multiple ? 200 : 1).forEach(function (f) { dt.items.add(f); });
+            input.files = dt.files;
+            render();
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        input.addEventListener('change', render);
+    });
+})();
+
+/* ---- Bilder eines Blocks per Drag & Drop sortieren (.gallery-admin[data-sortable]) ---- */
+(function () {
+    document.querySelectorAll('.gallery-admin[data-sortable]').forEach(function (grid) {
+        var dragged = null;
+        function items() { return Array.prototype.slice.call(grid.querySelectorAll('.gallery-admin__item')); }
+        function renumber() { items().forEach(function (it, n) { var b = it.querySelector('.gallery-admin__no'); if (b) { b.textContent = n + 1; } }); }
+        items().forEach(function (it) {
+            it.setAttribute('draggable', 'true');
+            it.addEventListener('dragstart', function (e) {
+                if (e.target && e.target.tagName === 'INPUT') { e.preventDefault(); return; }
+                dragged = it; it.classList.add('is-dragging'); e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', 'sort'); } catch (err) { /* IE */ }
+            });
+            it.addEventListener('dragend', function () { it.classList.remove('is-dragging'); dragged = null; });
+            it.addEventListener('dragover', function (e) {
+                if (!dragged || dragged === it) { return; }
+                e.preventDefault();
+                var r = it.getBoundingClientRect();
+                var before = (e.clientX - r.left) < r.width / 2;
+                grid.insertBefore(dragged, before ? it : it.nextSibling);
+            });
+            it.addEventListener('drop', function (e) { e.preventDefault(); renumber(); });
+        });
+        renumber();
+    });
+})();

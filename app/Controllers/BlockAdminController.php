@@ -295,6 +295,16 @@ final class BlockAdminController
         $bibliothekCaptions = [];
         $bibliothekWeg      = [];
 
+        // Reihenfolge aus dem Formular (Drag & Drop): img_order[] = urspruengliche Indizes
+        $reihenfolge = array_values(array_filter(array_map('intval', (array) ($_POST['img_order'] ?? [])), static fn (int $i): bool => isset($bisher[$i])));
+        if ($reihenfolge !== [] && count($reihenfolge) === count($bisher)) {
+            $sortiert = [];
+            foreach ($reihenfolge as $i) {
+                $sortiert[$i] = $bisher[$i];
+            }
+            $bisher = $sortiert;
+        }
+
         foreach ($bisher as $i => $bild) {
             $datei = (string) ($bild['file'] ?? '');
 

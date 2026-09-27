@@ -128,7 +128,9 @@ Verfügbare Blöcke:
 * **Galerie** – mehrere Bilder auf einmal hochladen oder aus der
   *Bildbibliothek* auswählen; zusätzlich lassen sich Tags angeben, dann
   erscheinen alle Bilder mit diesem Tag automatisch (z. B. „sommerfest 2026“).
-  Besucher blättern in einer Großansicht (Lightbox) durch die Bilder.
+  Bilder lassen sich per Drag & Drop in das Upload-Feld ziehen und durch Ziehen
+  der Kacheln neu sortieren. Besucher blättern in einer Großansicht (Lightbox)
+  durch die Bilder.
 * **Video** – eigenes Video (MP4/WebM) oder ein YouTube-Video. YouTube wird
   erst geladen, wenn Besucher auf „Abspielen“ klicken – vorher fließen keine
   Daten an Google.

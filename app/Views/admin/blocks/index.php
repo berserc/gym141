@@ -169,9 +169,11 @@ $istStartseite = $pageId === null && $sectionId === null;
                 <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>
                 <?php if (!isset($libImages)) { try { $libImages = \App\Models\ImageRepo::search(); } catch (\Throwable) { $libImages = []; } } ?>
                 <?php if ($bilder !== []): ?>
-                    <div class="gallery-admin">
+                    <p class="gallery-admin__hint">Reihenfolge ändern: Bild mit der Maus an eine andere Stelle ziehen, dann speichern.</p>
+                    <div class="gallery-admin" data-sortable>
                         <?php foreach ($bilder as $gi => $gBild): ?>
                             <div class="gallery-admin__item">
+                                <input type="hidden" name="img_order[]" value="<?= $gi ?>"><span class="gallery-admin__no"></span>
                                 <img src="<?= e(upload_url((string) ($gBild['thumb'] ?? $gBild['file']))) ?>" alt="">
                                 <?php if ((int) ($gBild['image_id'] ?? 0) > 0): ?><span class="badge badge--muted" title="aus der Bildbibliothek – Entfernen hängt es nur aus">Bibliothek</span><?php endif; ?>
                                 <input name="captions[<?= $gi ?>]" value="<?= e((string) ($gBild['caption'] ?? '')) ?>"
@@ -214,9 +216,11 @@ $istStartseite = $pageId === null && $sectionId === null;
             <?php elseif ($block['type'] === 'slideshow'): ?>
                 <?php $bilder = is_array($cfg['images'] ?? null) ? $cfg['images'] : []; ?>
                 <?php if ($bilder !== []): ?>
-                    <div class="gallery-admin">
+                    <p class="gallery-admin__hint">Reihenfolge ändern: Bild mit der Maus an eine andere Stelle ziehen, dann speichern.</p>
+                    <div class="gallery-admin" data-sortable>
                         <?php foreach ($bilder as $gi => $gBild): ?>
                             <div class="gallery-admin__item">
+                                <input type="hidden" name="img_order[]" value="<?= $gi ?>"><span class="gallery-admin__no"></span>
                                 <img src="<?= e(upload_url((string) $gBild['file'])) ?>" alt="">
                                 <input name="captions[<?= $gi ?>]" value="<?= e((string) ($gBild['caption'] ?? '')) ?>"
                                        placeholder="Bildunterschrift" maxlength="200">
