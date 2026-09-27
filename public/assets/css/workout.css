@@ -1,0 +1,19 @@
+/* Wiedergabe einer Trainingseinheit (Karte, Herzfrequenz-Kurve, Zeitleiste) – wie in der Mitglieder-App */
+.wo-player { background: #1a1f24; color: #e8eaed; border-radius: 12px; overflow: hidden; }
+.wo-map { height: 320px; background: #15191d; }
+.wo-mapfail { padding: 1rem; color: #9aa0a6; text-align: center; }
+.wo-chart { display: block; width: 100%; height: 150px; background: #15191d; border-top: 1px solid #2a3138; }
+.wo-controls { display: flex; align-items: center; gap: .6rem; padding: .5rem .75rem; }
+.wo-play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--gold, #f2c14e); color: #111417; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
+.wo-slider { flex: 1; accent-color: var(--gold, #f2c14e); }
+.wo-speed { background: #15191d; color: #e8eaed; border: 1px solid #2a3138; border-radius: 8px; padding: .3rem .4rem; }
+.wo-readout { display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem; padding: 0 .75rem .75rem; text-align: center; }
+.wo-readout b { display: block; font-size: 1.05rem; }
+.wo-readout .wo-bpm { color: #ff6e6e; }
+.wo-readout small { color: #9aa0a6; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+.wo-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .6rem; margin: 0 0 1rem; }
+.wo-stats div { background: var(--bg-soft, #f6f4ee); border: 1px solid var(--line, #d9d4c7); border-radius: 10px; padding: .6rem .8rem; text-align: center; }
+.wo-stats b { display: block; font-size: 1.3rem; }
+.wo-stats small { color: var(--ink-soft, #666); text-transform: uppercase; letter-spacing: .04em; font-size: .7rem; }
+.wo-stats .hr b { color: #d94a4a; }
+.leaflet-container { font-family: inherit; }

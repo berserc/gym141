@@ -32,6 +32,8 @@ final class SettingsController
         // Ticket141-Kopplung (Ticketshop); ticket141_api_key wird gesondert
         // behandelt (leer = unveraendert)
         'ticket141_url',
+        // Karten (Geoapify) fuer die Wiedergabe von Trainingseinheiten
+        'geoapify_key',
     ];
 
     public function index(): void

@@ -54,6 +54,37 @@ $schnitt = $letzteBewertungen !== []
     </div>
 </div>
 
+<?php $workouts = $workouts ?? []; ?>
+<div class="card">
+    <div class="card__head">
+        <h2>Trainingseinheiten aus der App</h2>
+        <span class="muted"><?= count($workouts) ?> Einheiten</span>
+    </div>
+    <?php if ($workouts === []): ?>
+        <p class="muted">Noch keine Einheit übermittelt. Das Mitglied zeichnet in der Gym141-App unter „Mein Training“ auf (Bluetooth-Brustgurt + GPS) und schaltet die Freigabe „Trainingseinheiten an den Verein übermitteln“ ein.</p>
+    <?php else: ?>
+        <div class="table-scroll">
+            <table class="table table--compact">
+                <thead><tr><th>Datum</th><th>Art</th><th>Bezeichnung / Übung</th><th class="num">Dauer</th><th class="num">Strecke</th><th class="num">Ø Puls</th><th class="num">max.</th><th></th></tr></thead>
+                <tbody>
+                <?php foreach ($workouts as $w): ?>
+                    <tr>
+                        <td><?= e(format_datetime((string) $w['started_at'])) ?></td>
+                        <td><?= e(\App\Models\WorkoutRepo::typeLabel((string) $w['type'])) ?></td>
+                        <td><?= e((string) $w['title']) ?><?= (string) $w['exercise'] !== '' ? '<br><small class="muted">' . e((string) $w['exercise']) . '</small>' : '' ?></td>
+                        <td class="num"><?= e(\App\Models\WorkoutRepo::duration((int) $w['duration_s'])) ?></td>
+                        <td class="num"><?= (int) $w['distance_m'] >= 50 ? e(number_format((int) $w['distance_m'] / 1000, 2, ',', '.')) . ' km' : '–' ?></td>
+                        <td class="num"><?= $w['avg_hr'] !== null ? (int) $w['avg_hr'] : '–' ?></td>
+                        <td class="num"><?= $w['max_hr'] !== null ? (int) $w['max_hr'] : '–' ?></td>
+                        <td class="row-actions"><a class="btn btn--sm" href="<?= e(url('/admin/mitglieder/' . $id . '/training/' . $w['uid'])) ?>">Abspielen</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</div>
+
 <div class="card">
     <div class="card__head">
         <h2>Gewichtsverlauf</h2>

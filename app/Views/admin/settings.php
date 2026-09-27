@@ -378,6 +378,18 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
         </fieldset>
 
         <fieldset class="card">
+            <legend>Karten für Trainingseinheiten</legend>
+            <p class="muted">
+                Trainingseinheiten aus der Gym141-App (Herzfrequenz + GPS) werden unter „Entwicklung“ auf einer Karte abgespielt.
+                Mit einem kostenlosen <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener">Geoapify-Schlüssel</a>
+                kommen die Kartenkacheln von Geoapify; ohne Schlüssel werden OpenStreetMap-Kacheln verwendet.
+            </p>
+            <div class="field">
+                <label for="geoapify_key">Geoapify API-Key</label>
+                <input id="geoapify_key" name="geoapify_key" type="text" value="<?= e($value('geoapify_key')) ?>" placeholder="leer = OpenStreetMap">
+            </div>
+
+        <fieldset class="card">
             <legend>Cookie-Banner</legend>
 
             <label class="check">

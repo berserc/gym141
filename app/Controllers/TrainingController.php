@@ -85,7 +85,32 @@ final class TrainingController
             'perMonth'   => self::attendancePerMonth($id),
             'tests'      => self::activeTests(),
             'results'    => self::resultsForMember($id),
+            'workouts'   => \App\Models\WorkoutRepo::forMember($id),
             'canEdit'    => Auth::canWrite(),
+        ], 'layouts/admin');
+    }
+
+    /** Eine Trainingseinheit aus der App mit Wiedergabe (Karte, Herzfrequenz). */
+    public function workoutPage(array $args): void
+    {
+        AuthController::requireLogin();
+
+        $id     = (int) ($args['id'] ?? 0);
+        $member = $this->findAccessible($id);
+        $uid    = preg_replace('/[^a-z0-9]/i', '', (string) ($args['uid'] ?? ''));
+        $row    = \App\Models\WorkoutRepo::find($id, $uid);
+
+        if ($row === null) {
+            http_response_code(404);
+            View::display('errors/404-admin', ['title' => 'Nicht gefunden'], 'layouts/admin');
+            exit;
+        }
+
+        View::display('admin/training/workout', [
+            'title'  => ($row['title'] !== '' ? $row['title'] : \App\Models\WorkoutRepo::typeLabel((string) $row['type'])) . ' – ' . $member['first_name'] . ' ' . $member['last_name'],
+            'member' => $member,
+            'row'    => $row,
+            'geoKey' => \App\Models\Setting::get('geoapify_key', ''),
         ], 'layouts/admin');
     }
 

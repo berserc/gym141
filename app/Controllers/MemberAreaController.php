@@ -198,6 +198,28 @@ final class MemberAreaController
             'attendance' => \App\Controllers\TrainingController::attendance($id),
             'perMonth'   => \App\Controllers\TrainingController::attendancePerMonth($id),
             'results'    => \App\Controllers\TrainingController::resultsForMember($id),
+            'workouts'   => \App\Models\WorkoutRepo::forMember($id),
+        ], 'layouts/member');
+    }
+
+    /** Eigene Trainingseinheit aus der App mit Wiedergabe. */
+    public function workoutPage(array $args): void
+    {
+        $member = MemberAuth::require();
+        $uid    = preg_replace('/[^a-z0-9]/i', '', (string) ($args['uid'] ?? ''));
+        $row    = \App\Models\WorkoutRepo::find((int) $member['id'], $uid);
+
+        if ($row === null) {
+            http_response_code(404);
+            View::display('errors/404', ['title' => 'Nicht gefunden', 'sections' => [], 'activePage' => ''], 'layouts/member');
+            exit;
+        }
+
+        View::display('member/workout', [
+            'title'  => ($row['title'] !== '' ? $row['title'] : \App\Models\WorkoutRepo::typeLabel((string) $row['type'])),
+            'member' => $member,
+            'row'    => $row,
+            'geoKey' => \App\Models\Setting::get('geoapify_key', ''),
         ], 'layouts/member');
     }
 

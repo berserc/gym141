@@ -238,6 +238,24 @@ Verwaltung und Kassier – verkauft, storniert und gescannt wird in Ticket141.
 
 ---
 
+## Trainingseinheiten aus der App
+
+Mitglieder können in der Gym141-App unter *Mein Training* Einheiten aufzeichnen:
+Herzfrequenz per Bluetooth-Brustgurt oder Uhr und die Strecke per GPS. Schaltet
+das Mitglied in der App die Freigabe *Trainingseinheiten an den Verein
+übermitteln* ein, erscheinen die Einheiten unter *Mitglied → Entwicklung* im
+Abschnitt **Trainingseinheiten aus der App** – mit Datum, Art, Übung, Dauer,
+Strecke und Puls. *Abspielen* öffnet die Wiedergabe: Karte mit Strecke, darunter
+die Herzfrequenz-Kurve, Zeitleiste zum Vor- und Zurückspulen, Wiedergabe in
+1- bis 60-facher Geschwindigkeit. Das Mitglied sieht dieselbe Ansicht in seinem
+Mitgliederbereich unter *Meine Entwicklung*.
+
+Die Karte lädt Kacheln von Geoapify (Schlüssel unter *Einstellungen → Karten*)
+oder ohne Schlüssel von OpenStreetMap; die Karten-Bibliothek kommt von unpkg.com –
+die Wiedergabe braucht also Internet.
+
+---
+
 ## Für den Superuser
 
 * **Benutzer** – Konten anlegen, Rolle und Sektionen zuweisen, Passwörter zurücksetzen.

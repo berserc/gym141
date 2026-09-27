@@ -188,6 +188,7 @@ $router->post('/admin/mitglieder/{id}/leistungstest-loeschen', [$training, 'dele
 $router->get('/admin/anwesenheit', [$training, 'quickAttendance']);
 $router->post('/admin/anwesenheit', [$training, 'storeQuickAttendance']);
 $router->get('/admin/mitglieder/{id}/entwicklung', [$training, 'memberPage']);
+$router->get('/admin/mitglieder/{id}/training/{uid}', [$training, 'workoutPage']);
 $router->post('/admin/mitglieder/{id}/gewicht', [$training, 'saveWeight']);
 $router->post('/admin/mitglieder/{id}/gewicht-loeschen', [$training, 'deleteWeight']);
 $router->post('/admin/mitglieder/{id}/anwesenheit', [$training, 'saveAttendance']);
@@ -292,6 +293,7 @@ if ($memberArea) {
     $router->get('/mitglied/passwort', [$mitglied, 'showPassword']);
     $router->post('/mitglied/passwort', [$mitglied, 'changePassword']);
     $router->get('/mitglied/entwicklung', [$mitglied, 'development']);
+    $router->get('/mitglied/training/{uid}', [$mitglied, 'workoutPage']);
     $router->post('/mitglied/gewicht', [$mitglied, 'saveWeight']);
 }
 

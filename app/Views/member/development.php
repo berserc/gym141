@@ -94,6 +94,29 @@ $dreissigTage = count(array_filter(
     <?php endif; ?>
 </div>
 
+<?php $workouts = $workouts ?? []; ?>
+<div class="m-card">
+    <div class="m-card__head">
+        <h2>Meine Trainingseinheiten</h2>
+        <span class="badge-dark"><?= count($workouts) ?> aus der App</span>
+    </div>
+    <?php if ($workouts === []): ?>
+        <p class="muted-dark">Noch keine Einheit übermittelt – in der Gym141-App unter „Mein Training“ aufzeichnen und die Freigabe für den Verein einschalten.</p>
+    <?php else: ?>
+        <ul class="m-list">
+            <?php foreach (array_slice($workouts, 0, 30) as $w): ?>
+                <li>
+                    <a href="<?= e(url('/mitglied/training/' . $w['uid'])) ?>">
+                        <strong><?= e((string) $w['title'] !== '' ? (string) $w['title'] : \App\Models\WorkoutRepo::typeLabel((string) $w['type'])) ?></strong>
+                        – <?= e(format_datetime((string) $w['started_at'])) ?> ·
+                        <?= e(\App\Models\WorkoutRepo::duration((int) $w['duration_s'])) ?><?= (int) $w['distance_m'] >= 50 ? ' · ' . e(number_format((int) $w['distance_m'] / 1000, 2, ',', '.')) . ' km' : '' ?><?= $w['avg_hr'] !== null ? ' · Ø ' . (int) $w['avg_hr'] . ' bpm' : '' ?>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</div>
+
 <div class="m-card">
     <div class="m-card__head">
         <h2>Meine Formkurve</h2>
