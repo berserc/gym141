@@ -116,7 +116,7 @@ final class MemberController
             'fees'      => [],
             'isNew'     => true,
             'canEdit'   => true,
-            'hasScanKey' => Setting::get('anthropic_api_key') !== '',
+            'hasScanKey' => \App\Core\Ai::configured(),
         ], 'layouts/admin');
     }
 
@@ -269,9 +269,7 @@ final class MemberController
         AuthController::requireRole('superuser', 'verwaltung', 'sektionsleiter');
         Csrf::verify();
 
-        $apiKey = Setting::get('anthropic_api_key');
-
-        if ($apiKey === '') {
+        if (!\App\Core\Ai::configured()) {
             Flash::error('Kein Anthropic API-Schlüssel hinterlegt. Bitte zuerst in den Einstellungen eintragen.');
             Url::redirect('/admin/mitglieder/neu');
         }
@@ -290,47 +288,32 @@ final class MemberController
 
         $mime = (string) (mime_content_type((string) $file['tmp_name']) ?: '');
 
-        $erlaubt = [
-            'application/pdf' => 'pdf',
-            'image/jpeg'      => 'bild',
-            'image/png'       => 'bild',
-            'image/webp'      => 'bild',
-            'image/gif'       => 'bild',
-        ];
-
-        if (!isset($erlaubt[$mime])) {
+        if (!in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
             Flash::error('Nur Bilder (JPG, PNG, WebP, GIF) oder PDF werden unterstützt.');
             Url::redirect('/admin/mitglieder/neu');
         }
 
-        $daten = base64_encode((string) file_get_contents((string) $file['tmp_name']));
-
-        $ergebnis = $this->extractFormFields($apiKey, $mime, $erlaubt[$mime], $daten);
-
-        if (isset($ergebnis['fehler'])) {
-            Flash::error('Formular konnte nicht ausgelesen werden: ' . $ergebnis['fehler']);
+        try {
+            $felder = $this->extractFormFields($mime, (string) $file['tmp_name']);
+        } catch (\RuntimeException $e) {
+            Flash::error('Formular konnte nicht ausgelesen werden: ' . $e->getMessage());
             Url::redirect('/admin/mitglieder/neu');
         }
 
-        Flash::withInput($ergebnis['felder']);
+        Flash::withInput($felder);
         Flash::info('Formular ausgelesen – bitte alle Felder kontrollieren und dann speichern.');
         Url::redirect('/admin/mitglieder/neu');
     }
 
     /**
-     * Ruft die Anthropic Messages API (Claude Sonnet) auf und liefert die
+     * Laesst Claude (Core\Ai) das Beitrittsformular auslesen und liefert die
      * normalisierten Formularfelder.
      *
-     * @return array{felder?:array<string,string>,fehler?:string}
+     * @return array<string,string>
+     * @throws \RuntimeException mit anzeigbarer Meldung
      */
-    private function extractFormFields(string $apiKey, string $mime, string $art, string $base64): array
+    private function extractFormFields(string $mime, string $pfad): array
     {
-        $quelle = ['type' => 'base64', 'media_type' => $mime, 'data' => $base64];
-
-        $block = $art === 'pdf'
-            ? ['type' => 'document', 'source' => $quelle]
-            : ['type' => 'image', 'source' => $quelle];
-
         // Nullable Strings als JSON-Schema-Typ.
         $s = ['type' => ['string', 'null']];
 
@@ -364,102 +347,19 @@ final class MemberController
             . 'In notes nur eintragen, was sonst nirgends passt (z. B. Erziehungsberechtigte '
             . 'mit Name und Kontakt). Nicht lesbare oder fehlende Felder als null.';
 
-        $body = json_encode([
-            'model'         => 'claude-sonnet-5',
-            'max_tokens'    => 1500,
-            'system'        => $anweisung,
-            'output_config' => ['format' => ['type' => 'json_schema', 'schema' => $schema]],
-            'messages'      => [[
-                'role'    => 'user',
-                'content' => [
-                    $block,
-                    ['type' => 'text', 'text' => 'Bitte die Felder dieses Mitgliedsformulars extrahieren.'],
-                ],
-            ]],
-        ], JSON_UNESCAPED_UNICODE);
-
-        $headers = [
-            'Content-Type: application/json',
-            'x-api-key: ' . $apiKey,
-            'anthropic-version: 2023-06-01',
-        ];
-
-        if (function_exists('curl_init')) {
-            $ch = curl_init('https://api.anthropic.com/v1/messages');
-            curl_setopt_array($ch, [
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => $body,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT        => 120,
-                CURLOPT_HTTPHEADER     => $headers,
-            ]);
-
-            $antwort = curl_exec($ch);
-            $status  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-            $curlErr = curl_error($ch);
-
-            if ($antwort === false) {
-                return ['fehler' => 'Verbindung zur Claude API fehlgeschlagen (' . $curlErr . ').'];
-            }
-        } else {
-            // Fallback ohne curl-Erweiterung.
-            $kontext = stream_context_create(['http' => [
-                'method'        => 'POST',
-                'header'        => implode("\r\n", $headers),
-                'content'       => $body,
-                'timeout'       => 120,
-                'ignore_errors' => true,
-            ]]);
-
-            $antwort = @file_get_contents('https://api.anthropic.com/v1/messages', false, $kontext);
-            $status  = 0;
-
-            foreach ($http_response_header ?? [] as $zeile) {
-                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $zeile, $m) === 1) {
-                    $status = (int) $m[1];
-                }
-            }
-
-            if ($antwort === false) {
-                return ['fehler' => 'Verbindung zur Claude API fehlgeschlagen.'];
-            }
-        }
-
-        /** @var array<string,mixed> $json */
-        $json = json_decode((string) $antwort, true) ?? [];
-
-        if ($status !== 200) {
-            $meldung = (string) ($json['error']['message'] ?? ('HTTP ' . $status));
-
-            if ($status === 401) {
-                $meldung = 'API-Schlüssel ungültig – bitte in den Einstellungen prüfen.';
-            }
-
-            return ['fehler' => $meldung];
-        }
-
-        if (($json['stop_reason'] ?? '') === 'refusal') {
-            return ['fehler' => 'Die KI hat die Auswertung abgelehnt.'];
-        }
-
-        $text = '';
-        foreach ((array) ($json['content'] ?? []) as $teil) {
-            if (($teil['type'] ?? '') === 'text') {
-                $text = (string) $teil['text'];
-                break;
-            }
-        }
-
-        /** @var array<string,mixed>|null $roh */
-        $roh = json_decode($text, true);
-
-        if (!is_array($roh)) {
-            return ['fehler' => 'Unerwartete Antwort der KI.'];
-        }
+        $roh = \App\Core\Ai::request(
+            [
+                \App\Core\Ai::fileBlock($mime, $pfad),
+                ['type' => 'text', 'text' => 'Bitte die Felder dieses Mitgliedsformulars extrahieren.'],
+            ],
+            $anweisung,
+            $schema,
+            1500
+        );
 
         // Normalisieren: null -> '', Daten pruefen, nur bekannte Felder.
         $felder = [];
+
         foreach (['first_name', 'last_name', 'birthdate', 'gender', 'street', 'zip', 'city', 'email', 'phone', 'joined_on', 'notes'] as $feld) {
             $wert = trim((string) ($roh[$feld] ?? ''));
 
@@ -474,7 +374,7 @@ final class MemberController
             $felder[$feld] = $wert;
         }
 
-        return ['felder' => $felder];
+        return $felder;
     }
 
     /** @param array<string,string> $args */

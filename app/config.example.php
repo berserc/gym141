@@ -97,4 +97,16 @@ return [
     // Optional: zusätzliche Pfade, die der Ein-Klick-Updater NIE überschreibt
     // (eigene Startseite, Logos, Videos …) – relativ zum Projektstamm.
     // 'update_protected' => ['app/Views/public/home.php', 'public/assets/img/logo.jpg'],
+
+    // KI (Claude API): Normalerweise trägt der Verein seinen eigenen
+    // Anthropic-Schlüssel in den Einstellungen ein. Alternativ kann der
+    // BETREIBER einer verwalteten Installation hier einen Schlüssel
+    // hinterlegen ('' = aus) – damit ruft Gym141 immer 'ai_shared_model'
+    // und zählt höchstens 'ai_quota_monthly' Auswertungen je Monat.
+    // 'ai_shared_key'    => '',
+    // 'ai_shared_model'  => 'claude-haiku-4-5',
+    // 'ai_quota_monthly' => 200,
+
+    // Zeitlimit (Sekunden) für KI-Auswertungen.
+    // 'ai_timeout' => 180,
 ];

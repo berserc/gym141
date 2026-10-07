@@ -234,6 +234,7 @@ $router->get('/admin/bank/import', [$bank, 'import']);
 $router->post('/admin/bank/import', [$bank, 'runImport']);
 $router->get('/admin/bank/export.xlsx', [$bank, 'exportXlsx']);
 $router->post('/admin/bank/vorschlaege-uebernehmen', [$bank, 'confirmSuggestions']);
+$router->post('/admin/bank/ki-zuordnung', [$bank, 'aiMatch']);
 $router->post('/admin/bank/{id}/zuordnen', [$bank, 'assign']);
 $router->post('/admin/bank/{id}/beleg', [$bank, 'uploadFile']);
 $router->get('/admin/bank/beleg/{id}', [$bank, 'file']);

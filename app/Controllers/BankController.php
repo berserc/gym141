@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Ai;
 use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\BankStatementParser;
@@ -15,6 +16,7 @@ use App\Core\Url;
 use App\Core\View;
 use App\Core\XlsxWriter;
 use App\Models\FeeRepo;
+use App\Models\LedgerRepo;
 use App\Models\MemberRepo;
 
 /**
@@ -130,20 +132,30 @@ final class BankController
         $file = $_FILES['datei'] ?? null;
 
         if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            Flash::error('Bitte eine CSV- oder XLSX-Datei auswählen.');
+            Flash::error('Bitte eine Datei auswählen (CSV/XLSX, mit KI auch PDF oder Foto).');
             Url::redirect('/admin/bank/import');
         }
 
         $name = (string) $file['name'];
         $ext  = strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
 
-        if (!in_array($ext, ['csv', 'txt', 'xlsx'], true)) {
-            Flash::error('Nur CSV- oder XLSX-Exports werden unterstützt.');
+        $strukturiert = in_array($ext, ['csv', 'txt', 'xlsx'], true);
+        $kiFormate    = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+        if (!$strukturiert && !in_array($ext, $kiFormate, true)) {
+            Flash::error('Nur CSV-/XLSX-Exports sowie – mit KI – PDF-Auszüge und Fotos werden unterstützt.');
+            Url::redirect('/admin/bank/import');
+        }
+
+        if (!$strukturiert && !Ai::configured()) {
+            Flash::error('PDF-Auszüge und Fotos liest die KI – dafür in den Einstellungen einen Anthropic API-Schlüssel hinterlegen (CSV/XLSX geht auch ohne).');
             Url::redirect('/admin/bank/import');
         }
 
         try {
-            $ergebnis = BankStatementParser::parse((string) $file['tmp_name'], $name);
+            $ergebnis = $strukturiert
+                ? BankStatementParser::parse((string) $file['tmp_name'], $name)
+                : $this->aiParse((string) $file['tmp_name'], $name);
         } catch (\Throwable $e) {
             Flash::error('Import fehlgeschlagen: ' . $e->getMessage());
             Url::redirect('/admin/bank/import');
@@ -249,6 +261,231 @@ final class BankController
         }
 
         return [null, 'unbestimmt'];
+    }
+
+    /**
+     * KI-Import: Claude liest einen beliebigen Kontoauszug (PDF, Foto,
+     * Abrechnungsliste) und liefert die Buchungszeilen im Format von
+     * BankStatementParser::parse. Danach laeuft alles wie beim CSV-Import
+     * (Hash-Duplikatschutz, Auto-Zuordnung).
+     *
+     * @return array{rows: list<array<string,mixed>>}
+     * @throws \RuntimeException mit anzeigbarer Meldung
+     */
+    private function aiParse(string $pfad, string $name): array
+    {
+        if ((int) filesize($pfad) > 20 * 1024 * 1024) {
+            throw new \RuntimeException('Die Datei ist zu groß (maximal 20 MB).');
+        }
+
+        $mime = (string) (mime_content_type($pfad) ?: '');
+
+        if (!in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+            throw new \RuntimeException('Dateityp nicht erkannt – bitte PDF oder Foto hochladen.');
+        }
+
+        $zeile = [
+            'type'       => 'object',
+            'properties' => [
+                'booked_on'   => ['type' => 'string', 'description' => 'Buchungsdatum YYYY-MM-DD'],
+                'amount'      => ['type' => 'number', 'description' => 'Betrag; Eingang positiv, Ausgang negativ'],
+                'currency'    => ['type' => 'string'],
+                'counterpart' => ['type' => 'string', 'description' => 'Auftraggeber/Empfänger'],
+                'iban'        => ['type' => 'string'],
+                'reference'   => ['type' => 'string', 'description' => 'Verwendungszweck/Buchungstext'],
+            ],
+            'required'             => ['booked_on', 'amount', 'currency', 'counterpart', 'iban', 'reference'],
+            'additionalProperties' => false,
+        ];
+
+        $schema = [
+            'type'                 => 'object',
+            'properties'           => ['rows' => ['type' => 'array', 'items' => $zeile]],
+            'required'             => ['rows'],
+            'additionalProperties' => false,
+        ];
+
+        $anweisung = 'Du liest Kontoauszüge, Umsatzlisten und Abrechnungen beliebiger Banken und '
+            . 'Zahlungsdienste für die Buchhaltung eines österreichischen Sportvereins aus. '
+            . 'Extrahiere JEDE einzelne Umsatzzeile. Keine Zeilen erfinden, keine zusammenfassen. '
+            . 'Salden, Zwischensummen, Kontostand und Überschriften sind KEINE Umsätze und werden '
+            . 'weggelassen. Datum als YYYY-MM-DD (TT.MM.JJJJ umrechnen; fehlt das Jahr, aus dem '
+            . 'Kontext des Auszugs ergänzen). Betrag mit Dezimalpunkt; Abgänge/Lastschriften negativ, '
+            . 'Eingänge positiv. currency als ISO-Code (fehlt sie, EUR). IBAN nur, wenn eine der '
+            . 'Gegenpartei dasteht. Nicht sicher lesbare Werte leer lassen statt raten.';
+
+        $roh = Ai::request(
+            [
+                Ai::fileBlock($mime, $pfad),
+                ['type' => 'text', 'text' => 'Bitte alle Umsatzzeilen dieses Auszugs („' . $name . '“) extrahieren.'],
+            ],
+            $anweisung,
+            $schema,
+            16000
+        );
+
+        $rows = [];
+
+        foreach ((array) ($roh['rows'] ?? []) as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+
+            $datum  = parse_date(trim((string) ($r['booked_on'] ?? '')));
+            $betrag = (float) ($r['amount'] ?? 0);
+
+            if ($datum === null || abs($betrag) < 0.005) {
+                continue;
+            }
+
+            $rows[] = [
+                'booked_on'   => $datum,
+                'amount'      => round($betrag, 2),
+                'currency'    => strtoupper(mb_substr(trim((string) ($r['currency'] ?? 'EUR')), 0, 3)) ?: 'EUR',
+                'counterpart' => mb_substr(trim((string) ($r['counterpart'] ?? '')), 0, 150),
+                'iban'        => strtoupper((string) preg_replace('/\s+/', '', (string) ($r['iban'] ?? ''))),
+                'reference'   => mb_substr(trim((string) ($r['reference'] ?? '')), 0, 300),
+            ];
+        }
+
+        if ($rows === []) {
+            throw new \RuntimeException('Die KI hat keine Umsatzzeilen gefunden – ist das wirklich ein Kontoauszug?');
+        }
+
+        return ['rows' => $rows];
+    }
+
+    /**
+     * KI-Zuordnung: Claude bekommt die unbestimmten Zahlungen und die
+     * Mitgliederliste und schlaegt je Zahlung ein Mitglied oder eine
+     * Kategorie vor. Nichts wird endgueltig uebernommen – die Vorschlaege
+     * laufen wie die Auto-Zuordnung ueber den Status "vorgeschlagen".
+     */
+    public function aiMatch(): void
+    {
+        AuthController::requireRole('superuser', 'kassier');
+        Csrf::verify();
+
+        if (!Ai::configured()) {
+            Flash::error('Für die KI-Zuordnung in den Einstellungen einen Anthropic API-Schlüssel hinterlegen.');
+            $this->back();
+        }
+
+        $txs = Database::all(
+            "SELECT id, booked_on, amount, counterpart, iban, reference
+               FROM bank_transactions WHERE status = 'unbestimmt'
+              ORDER BY booked_on DESC, id DESC LIMIT 150"
+        );
+
+        if ($txs === []) {
+            Flash::info('Keine unbestimmten Zahlungen vorhanden.');
+            $this->back();
+        }
+
+        $mitglieder = Database::all(
+            "SELECT id, first_name, last_name, member_no FROM members
+              WHERE deleted_at IS NULL ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE"
+        );
+
+        $txText = implode("\n", array_map(static fn (array $t): string => sprintf(
+            '%d | %s | %.2f | %s | %s | %s',
+            (int) $t['id'],
+            (string) $t['booked_on'],
+            (float) $t['amount'],
+            (string) $t['counterpart'],
+            (string) $t['iban'],
+            (string) $t['reference']
+        ), $txs));
+
+        $mText = implode("\n", array_map(static fn (array $m): string => sprintf(
+            '%d | %s %s | %s',
+            (int) $m['id'],
+            (string) $m['first_name'],
+            (string) $m['last_name'],
+            (string) $m['member_no']
+        ), $mitglieder));
+
+        $schema = [
+            'type'       => 'object',
+            'properties' => ['zuordnungen' => ['type' => 'array', 'items' => [
+                'type'       => 'object',
+                'properties' => [
+                    'id'         => ['type' => 'integer', 'description' => 'Id der Zahlung'],
+                    'member_id'  => ['type' => ['integer', 'null'], 'description' => 'Id aus der Mitgliederliste oder null'],
+                    'category'   => ['type' => ['string', 'null'], 'enum' => array_merge(array_keys(self::CATEGORIES), [null])],
+                    'confidence' => ['type' => 'string', 'enum' => ['hoch', 'mittel', 'niedrig']],
+                ],
+                'required'             => ['id', 'member_id', 'category', 'confidence'],
+                'additionalProperties' => false,
+            ]]],
+            'required'             => ['zuordnungen'],
+            'additionalProperties' => false,
+        ];
+
+        $anweisung = 'Du ordnest Bankzahlungen eines österreichischen Sportvereins zu. Je Zahlung: '
+            . 'entweder das passende Mitglied (member_id aus der Liste) ODER eine Kategorie, wenn kein '
+            . 'Mitglied passt. Mitglieder erkennst du an Namen in Gegenpartei oder Verwendungszweck – '
+            . 'auch bei Tippfehlern, fehlenden Umlauten, vertauschter Reihenfolge oder wenn ein '
+            . 'Elternteil für ein Kind zahlt (Kind steht im Zweck). Vorsicht bei mehreren Mitgliedern '
+            . 'mit gleichem Nachnamen: ohne eindeutigen Vornamen member_id null und confidence niedrig. '
+            . 'Kategorien nur bei klaren Fällen (z. B. Miete/Energie = betriebskosten, Förderung = '
+            . 'foerderung, Spende = spende); sonst category null. Rate nicht: lieber null und '
+            . 'confidence niedrig als eine falsche Zuordnung.';
+
+        try {
+            $roh = Ai::request(
+                [[
+                    'type' => 'text',
+                    'text' => "Zahlungen (id | datum | betrag | gegenpartei | iban | zweck):\n" . $txText
+                        . "\n\nMitglieder (id | name | mitgliedsnummer):\n" . $mText,
+                ]],
+                $anweisung,
+                $schema,
+                16000
+            );
+        } catch (\RuntimeException $e) {
+            Flash::error('KI-Zuordnung fehlgeschlagen: ' . $e->getMessage());
+            $this->back();
+        }
+
+        $txIds      = array_flip(array_map(static fn (array $t): int => (int) $t['id'], $txs));
+        $memberIds  = array_flip(array_map(static fn (array $m): int => (int) $m['id'], $mitglieder));
+        $betraege   = array_column($txs, 'amount', 'id');
+        $vorschlag  = 0;
+
+        foreach ((array) ($roh['zuordnungen'] ?? []) as $z) {
+            if (!is_array($z) || !isset($txIds[(int) ($z['id'] ?? 0)])) {
+                continue;
+            }
+
+            if (!in_array((string) ($z['confidence'] ?? ''), ['hoch', 'mittel'], true)) {
+                continue;
+            }
+
+            $txId     = (int) $z['id'];
+            $memberId = $z['member_id'] !== null && isset($memberIds[(int) $z['member_id']]) ? (int) $z['member_id'] : null;
+            $category = isset(self::CATEGORIES[(string) ($z['category'] ?? '')]) ? (string) $z['category'] : '';
+
+            if ($memberId !== null) {
+                // Mitgliedsbeitrag nur bei Eingaengen vorbelegen.
+                $category = (float) ($betraege[$txId] ?? 0) > 0 ? 'mitgliedsbeitrag' : $category;
+            } elseif ($category === '') {
+                continue;
+            }
+
+            Database::update('bank_transactions', $txId, [
+                'member_id' => $memberId,
+                'category'  => $category,
+                'status'    => 'vorgeschlagen',
+            ]);
+            $vorschlag++;
+        }
+
+        Audit::log('bank_ai_match', 'bank_transaction', null, count($txs) . ' geprüft, ' . $vorschlag . ' Vorschläge');
+        Flash::success($vorschlag > 0
+            ? sprintf('KI-Zuordnung: %d von %d unbestimmten Zahlungen haben jetzt einen Vorschlag – bitte prüfen und übernehmen.', $vorschlag, count($txs))
+            : 'KI-Zuordnung: Für die unbestimmten Zahlungen wurde kein sicherer Vorschlag gefunden.');
+        $this->back();
     }
 
     // ----------------------------------------------------------- Zuordnung --
@@ -437,7 +674,9 @@ final class BankController
                 null,
                 $bookedOn,
                 Auth::id(),
-                'per Bankimport (Zahlung #' . $txId . ')'
+                'per Bankimport (Zahlung #' . $txId . ')',
+                // Kassabuch: Bankimport = Zahlungsart Bank (sonst landet es als Barkassa).
+                LedgerRepo::defaultMethodId('bank')
             );
         }
 

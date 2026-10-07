@@ -297,13 +297,23 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
         </fieldset>
 
         <fieldset class="card">
-            <legend>KI-Formularerkennung (Claude API)</legend>
+            <legend>KI (Claude API)</legend>
+
+            <p class="muted">
+                Mit einem Schlüssel liest Gym141 <strong>Mitgliedsformulare</strong> (Foto/PDF bei
+                der Neuanlage), <strong>beliebige Kontoauszüge und Abrechnungen</strong> (PDF/Foto
+                beim Bankimport) und schlägt für unbestimmte Zahlungen die passenden
+                <strong>Mitglieder</strong> vor. Die Dateien werden dafür zur Auswertung an die
+                Claude API (Anthropic) übertragen.
+            </p>
 
             <div class="field">
                 <label for="anthropic_api_key">
                     Anthropic API-Schlüssel
                     <?php if ($value('anthropic_api_key') !== ''): ?>
                         <span class="badge badge--ok">hinterlegt (…<?= e(substr($value('anthropic_api_key'), -4)) ?>)</span>
+                    <?php elseif (\App\Core\Ai::sharedKey() !== ''): ?>
+                        <span class="badge badge--ok">vom Betreiber bereitgestellt</span>
                     <?php else: ?>
                         <span class="badge badge--muted">nicht hinterlegt</span>
                     <?php endif; ?>
@@ -311,10 +321,11 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
                 <input id="anthropic_api_key" name="anthropic_api_key" type="password"
                        autocomplete="off" placeholder="sk-ant-…">
                 <p class="field__hint">
-                    Wird für das automatische Auslesen von Mitgliedsformularen
-                    (Foto/PDF) bei der Neuanlage verwendet. Schlüssel unter
+                    Schlüssel unter
                     <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a>
-                    erstellen. Leer lassen = unverändert.
+                    erstellen; abgerechnet wird nach Verbrauch direkt bei Anthropic
+                    (eine Auswertung kostet typischerweise unter einen Cent).
+                    Leer lassen = unverändert.
                 </p>
             </div>
 
@@ -323,6 +334,16 @@ $value = static fn (string $key, string $default = ''): string => $settings[$key
                     <input type="checkbox" name="anthropic_api_key_clear" value="1">
                     Gespeicherten Schlüssel löschen
                 </label>
+
+                <div class="field field--sm">
+                    <label for="ai_model">Modell</label>
+                    <input id="ai_model" name="ai_model" value="<?= e($value('ai_model')) ?>"
+                           placeholder="<?= e(\App\Core\Ai::DEFAULT_MODEL) ?>">
+                    <p class="field__hint">
+                        Leer = <code><?= e(\App\Core\Ai::DEFAULT_MODEL) ?></code> (günstig und für
+                        Formulare/Auszüge ausreichend). Genauer, aber teurer: <code>claude-sonnet-5-5</code>.
+                    </p>
+                </div>
             <?php endif; ?>
         </fieldset>
     </div>

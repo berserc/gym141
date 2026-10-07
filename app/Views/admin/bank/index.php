@@ -30,6 +30,13 @@ $exportQuery = array_filter($filters, static fn (string $v): bool => $v !== '');
         </p>
     </div>
     <div class="page-head__actions">
+        <?php if ((int) $stats['unbestimmt'] > 0 && \App\Core\Ai::configured()): ?>
+            <form method="post" action="<?= e(url('/admin/bank/ki-zuordnung')) ?>" class="inline"
+                  data-confirm="Die KI schlägt für bis zu 150 unbestimmte Zahlungen Mitglieder bzw. Kategorien vor (Zahlungsdaten werden dafür an die Claude API übertragen). Fortfahren?">
+                <?= csrf_field() ?>
+                <button class="btn" type="submit">KI-Zuordnung (<?= (int) $stats['unbestimmt'] ?>)</button>
+            </form>
+        <?php endif; ?>
         <?php if ((int) $stats['vorschlaege'] > 0): ?>
             <form method="post" action="<?= e(url('/admin/bank/vorschlaege-uebernehmen')) ?>" class="inline"
                   data-confirm="Alle <?= (int) $stats['vorschlaege'] ?> automatisch vorgeschlagenen Zuordnungen übernehmen?">

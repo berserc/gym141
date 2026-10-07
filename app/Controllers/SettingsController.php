@@ -34,6 +34,9 @@ final class SettingsController
         'ticket141_url',
         // Karten (Geoapify) fuer die Wiedergabe von Trainingseinheiten
         'geoapify_key',
+        // KI (Claude API): Modell fuer den eigenen Schluessel; anthropic_api_key
+        // wird gesondert behandelt (leer = unveraendert)
+        'ai_model',
     ];
 
     public function index(): void
@@ -123,6 +126,11 @@ final class SettingsController
 
         // Ticket141-Adresse normalisieren ("tickets.example.org/" -> "https://…").
         $values['ticket141_url'] = \App\Core\Ticket141Client::normalize($values['ticket141_url']);
+
+        // KI-Modell: nur plausible Modellnamen speichern (leer = Vorgabe).
+        if ($values['ai_model'] !== '' && preg_match('/^[a-z0-9.\-]{3,60}$/', $values['ai_model']) !== 1) {
+            $values['ai_model'] = '';
+        }
 
         Setting::setMany($values);
 
