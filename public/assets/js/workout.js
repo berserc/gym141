@@ -47,6 +47,7 @@ window.workout = (function () {
     function distAt(t) { // Meter bis t (vorberechnete Summen)
         var tr = S.track; if (tr.length < 2) { return 0; }
         var i = 0, lo = 0, hi = tr.length - 1;
+        if (t <= tr[0].t) { return 0; }
         if (t >= tr[hi].t) { return S.cum[hi]; }
         while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (tr[mid].t <= t) { lo = mid; } else { hi = mid - 1; } }
         i = lo; if (i >= tr.length - 1) { return S.cum[i]; }
