@@ -247,6 +247,36 @@ final class CalendarRepo
         );
     }
 
+    /**
+     * Abstimmung SETZEN (Mitglieder-App): anders als respond() wird nicht
+     * umgeschaltet – dieselbe Antwort zweimal bleibt gesetzt, damit offline
+     * gesammelte Antworten idempotent nachgereicht werden koennen.
+     * zusage/absage = Upsert, '' = eigene Antwort zurueckziehen.
+     */
+    public static function setResponse(int $eventId, int $memberId, string $occursOn, string $status, string $note = ''): void
+    {
+        if ($status === '') {
+            Database::run(
+                'DELETE FROM calendar_signups WHERE event_id = ? AND member_id = ? AND occurs_on = ?',
+                [$eventId, $memberId, $occursOn]
+            );
+
+            return;
+        }
+
+        if ($status !== 'zusage' && $status !== 'absage') {
+            throw new \InvalidArgumentException('Ungültige Antwort.');
+        }
+
+        Database::run(
+            "INSERT INTO calendar_signups (event_id, member_id, occurs_on, status, note, updated_at)
+             VALUES (?, ?, ?, ?, ?, datetime('now'))
+             ON CONFLICT(event_id, member_id, occurs_on) DO UPDATE SET
+                status = excluded.status, note = excluded.note, updated_at = excluded.updated_at",
+            [$eventId, $memberId, $occursOn, $status, $note]
+        );
+    }
+
     /** @return list<array<string,mixed>> Antworten zu einem Termin (fuer die Verwaltung). */
     public static function signups(int $eventId): array
     {

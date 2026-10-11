@@ -133,3 +133,6 @@ MIT – siehe [LICENSE](LICENSE).
 - **Trainingseinheiten aus der App** (seit 1.28): die Mitglieder-App zeichnet Herzfrequenz
   (Bluetooth-Brustgurt/Uhr) und GPS-Strecke auf; mit Freigabe des Mitglieds landen die
   Einheiten unter `/api/app/training` (Tabelle `member_workouts`, Rohdaten als JSON)
+- **Termine in der App** (seit 1.32): `GET /api/app/termine` (sichtbare Termine des
+  Mitglieds in Vorkommen aufgelöst, mit Zu-/Absagen) und `POST /api/app/termine/antwort`
+  (Zu-/Absage setzen bzw. mit `""` zurückziehen – idempotent, nicht umschaltend)

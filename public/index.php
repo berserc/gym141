@@ -279,6 +279,8 @@ if ($memberArea) {
     $router->get('/api/app/training', [$app, 'workouts_get']);
     $router->post('/api/app/training', [$app, 'workouts_put']);
     $router->post('/api/app/training/loeschen', [$app, 'workouts_delete']);
+    $router->get('/api/app/termine', [$app, 'events_get']);
+    $router->post('/api/app/termine/antwort', [$app, 'events_answer']);
 
     $mitglied = new App\Controllers\MemberAreaController();
 

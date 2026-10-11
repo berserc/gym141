@@ -258,6 +258,32 @@ die Wiedergabe braucht also Internet.
 
 ---
 
+## Termine in der App
+
+Seit Version 1.32 zeigt die Gym141-App die Termine aus *Termine* (Wettkämpfe,
+Events, Wiederholungstermine) genauso wie der Mitgliederbereich der Website:
+nur die für das Mitglied sichtbaren (Gruppen!), Wiederholungen als einzelne
+Termine, für die nächsten 180 Tage. Ist beim Termin *An-/Abmeldung* aktiv,
+kann das Mitglied in der App zu- oder absagen und sieht, wer kommt und wer
+nicht – die Antworten landen in derselben Liste wie die von der Website.
+
+Technik für App-Entwickler (Bearer-Token wie die übrigen `/api/app/*`-Routen,
+nur bei eingeschaltetem Mitgliederbereich):
+
+* `GET /api/app/termine` (optional `?alle=1` = auch die letzten 60 Tage) –
+  Liste `events` mit `event_id`, `occurs_on` (`""` bei einmaligen Terminen),
+  `date`, `ends_on`, `kind`, `kind_label`, `title`, `location`, `description`,
+  `recur_label`, `rsvp`, `my_status` (`zusage`/`absage`/`null`), `yes`, `no`.
+* `POST /api/app/termine/antwort` mit `{"event_id": 12, "occurs_on": "2026-10-14",
+  "status": "zusage"}` – `status` `zusage`, `absage` oder `""` (zurückziehen).
+  Anders als auf der Website wird die Antwort **gesetzt, nicht umgeschaltet**:
+  dieselbe Antwort zweimal bleibt bestehen (offline gesammelte Antworten werden
+  später nachgereicht). Antwort: `{"ok": true, "event": {…}}` mit dem
+  aktualisierten Termin. Fehler: 404 *Termin nicht gefunden.*, 422 bei Terminen
+  ohne Abstimmung, ungültigem Wiederholungstermin oder ungültiger Antwort.
+
+---
+
 ## Für den Superuser
 
 * **Benutzer** – Konten anlegen, Rolle und Sektionen zuweisen, Passwörter zurücksetzen.

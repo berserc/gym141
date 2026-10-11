@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Database;
+use App\Models\CalendarRepo;
 use App\Models\FeeRepo;
 use App\Models\Setting;
 
@@ -428,6 +429,139 @@ final class MemberApiController
         )->rowCount();
 
         $this->json(['ok' => true, 'deleted' => $geloescht]);
+    }
+
+    // -------------------------------------------------------------- Termine --
+
+    /**
+     * Sichtbare Termine des Mitglieds, in einzelne Vorkommen aufgeloest –
+     * gleiche Regeln wie der Website-Bereich /mitglied/termine
+     * (Zeitraum heute bzw. mit alle=1 heute − 60 Tage bis heute + 180 Tage).
+     */
+    public function events_get(): void
+    {
+        [, $member] = $this->requireToken();
+        $id = (int) $member['id'];
+
+        $von = query('alle') === '1' ? date('Y-m-d', strtotime('-60 days')) : date('Y-m-d');
+        $bis = date('Y-m-d', strtotime('+180 days'));
+
+        $eintraege = [];
+
+        foreach (CalendarRepo::eventsForMember($id, false) as $event) {
+            foreach (CalendarRepo::occurrences($event, $von, $bis) as $occ) {
+                $eintraege[] = [$event, $occ['on'], $occ['ends']];
+            }
+        }
+
+        usort($eintraege, static fn (array $a, array $b): int => [$a[1], (int) $a[0]['id']] <=> [$b[1], (int) $b[0]['id']]);
+
+        $poll = CalendarRepo::pollData(
+            array_values(array_unique(array_map(static fn (array $e): int => (int) $e[0]['id'], $eintraege))),
+            $id
+        );
+
+        $this->json(['events' => array_map(
+            fn (array $e): array => $this->eventEntry($e[0], $e[1], $e[2], $poll),
+            $eintraege
+        )]);
+    }
+
+    /**
+     * Zu-/Absage SETZEN (nicht umschalten wie im Web-Formular): die App
+     * reicht offline gesammelte Antworten spaeter nach – das ist idempotent.
+     * status '' zieht die eigene Antwort zurueck.
+     */
+    public function events_answer(): void
+    {
+        [, $member] = $this->requireToken();
+        $memberId = (int) $member['id'];
+
+        $body    = $this->body();
+        $eventId = (int) ($body['event_id'] ?? 0);
+        $event   = $eventId > 0 ? Database::one('SELECT * FROM calendar_events WHERE id = ?', [$eventId]) : null;
+
+        if ($event === null || !CalendarRepo::memberCanSee($eventId, $memberId)) {
+            $this->json(['error' => 'Termin nicht gefunden.'], 404);
+        }
+
+        if ((int) $event['rsvp'] !== 1) {
+            $this->json(['error' => 'Für diesen Termin ist keine Abstimmung vorgesehen.'], 422);
+        }
+
+        if ((string) ($event['recur'] ?? 'keine') === 'keine') {
+            // Einmaliger Termin: Abstimmungs-Schluessel immer '' (Eingabe ignorieren).
+            $occursOn = '';
+            $on       = (string) $event['starts_on'];
+            $ends     = ($event['ends_on'] ?? null) !== null && $event['ends_on'] !== '' ? (string) $event['ends_on'] : null;
+        } else {
+            $eingabe  = $body['occurs_on'] ?? '';
+            $occursOn = is_string($eingabe) ? (parse_date($eingabe) ?? '') : '';
+            $treffer  = null;
+
+            foreach (CalendarRepo::occurrences($event, date('Y-m-d', strtotime('-60 days')), date('Y-m-d', strtotime('+400 days'))) as $occ) {
+                if ($occ['on'] === $occursOn) {
+                    $treffer = $occ;
+                    break;
+                }
+            }
+
+            if ($treffer === null) {
+                $this->json(['error' => 'Ungültiger Wiederholungstermin.'], 422);
+            }
+
+            $on   = $treffer['on'];
+            $ends = $treffer['ends'];
+        }
+
+        $status = $body['status'] ?? null;
+
+        if (!in_array($status, ['zusage', 'absage', ''], true)) {
+            $this->json(['error' => 'Ungültige Antwort.'], 422);
+        }
+
+        $note = $body['note'] ?? '';
+        $note = is_string($note) ? mb_substr(trim($note), 0, 500) : '';
+
+        CalendarRepo::setResponse($eventId, $memberId, $occursOn, $status, $note);
+
+        $this->json([
+            'ok'    => true,
+            'event' => $this->eventEntry($event, $on, $ends, CalendarRepo::pollData([$eventId], $memberId)),
+        ]);
+    }
+
+    /**
+     * Ein Termin-Vorkommen im App-Format (Feldreihenfolge = Vertrag, identisch
+     * mit der Portal-Fassung).
+     *
+     * @param array<string,mixed> $event
+     * @param array{votes: array<int,array<string,array<string,list<string>>>>, my: array<int,array<string,string>>} $poll
+     * @return array<string,mixed>
+     */
+    private function eventEntry(array $event, string $on, ?string $ends, array $poll): array
+    {
+        $eid  = (int) $event['id'];
+        $kind = (string) $event['kind'];
+        // Abstimmungs-Schluessel: '' bei einmaligen Terminen (wie im Web).
+        $occursOn = (string) ($event['recur'] ?? 'keine') === 'keine' ? '' : $on;
+
+        return [
+            'event_id'    => $eid,
+            'occurs_on'   => $occursOn,
+            'date'        => $on,
+            'ends_on'     => $ends !== null && $ends !== '' && $ends !== $on ? $ends : null,
+            'kind'        => $kind,
+            'kind_label'  => CalendarRepo::KINDS[$kind] ?? $kind,
+            'title'       => (string) $event['title'],
+            'location'    => (string) $event['location'],
+            'description' => (string) $event['description'],
+            'recur_label' => CalendarRepo::recurLabel($event),
+            'rsvp'        => (int) $event['rsvp'],
+            'my_status'   => $poll['my'][$eid][$occursOn] ?? null,
+            'yes'         => $poll['votes'][$eid][$occursOn]['zusage'] ?? [],
+            'no'          => $poll['votes'][$eid][$occursOn]['absage'] ?? [],
+        ];
     }
 
     // --------------------------------------------------------------- Intern --
